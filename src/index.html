@@ -5,74 +5,88 @@
     <link rel="stylesheet" href="styles.css" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Tauri App</title>
-    <script type="module" src="/main.js" defer></script>
+    <script type="module" src="main.js" defer></script>
   </head>
 
   <body>
-    <div class="container">
-      <div class="logo">
-        <img src="assets/logo.png" />
-        Book Builder
-      </div>
-
-      <div class="subcontainer">
-        <p>
-          <img src="assets/hard-drive.svg" class="icon-white" /> <img src="assets/home.svg" class="icon-white" />
-          <span id="path">Please select folder...</span>
-        </p>
-
-        <div id="select-panel" class="select-panel main-select-panel">
-          <div class="row">
-            <div class="list-container" id="list-container"></div>
-          </div>
+    <div id="app">
+      <div class="container">
+        <div class="logo">
+          <img src="assets/logo.png" />
+          Book Builder
         </div>
 
-        <!-- ===============  -->
+        <div class="subcontainer">
+          <p>
+            <img src="assets/hard-drive.svg" class="icon-white" /> <img src="assets/home.svg" class="icon-white" />
+            <span>{{path}}</span>
+          </p>
 
-        <div id="config-panel" class="main-panel-base hidden">
-          <div class="main-panel-info">
+          <!-- ===============  -->
+
+          <div id="select-panel" class="select-panel main-select-panel" v-if="!selected">
             <div class="row">
-              <input id="title" placeholder="Enter a book title" class="text-input" />
-            </div>
-
-            <div class="row">
-              <input id="author" placeholder="Enter the book author" class="text-input" />
-            </div>
-
-            <div class="row" id="config-detail-switch">
-              <input id="title" type="checkbox" /> &nbsp; Specify the title page
-            </div>
-
-            <div id="config-panel-detail" class="config-panel-detail hidden">
-              <div class="row">
-                <div class="select-panel detail-select-panel">
-                  <div class="list-container" id="xlist-container"></div>
+              <div class="list-container" id="list-container">
+                <div v-for="file in data" :key="file.name" @click="files(file.name)">
+                  <img src="assets/folder.svg" class="icon-yellow" v-if="file.folder" />
+                  <img src="assets/document.svg" class="icon-white" v-else />
+                  {{ file.name }}
                 </div>
               </div>
+            </div>
+          </div>
+
+          <!-- ===============  -->
+
+          <div id="config-panel" class="main-panel-base" v-if="selected">
+            <div class="main-panel-info">
+              <div class="row">
+                <input id="title" placeholder="Enter a book title" class="text-input" />
+              </div>
 
               <div class="row">
-                <input id="start_text" placeholder="Enter the title page text" class="text-input" />
+                <input id="author" placeholder="Enter the book author" class="text-input" />
+              </div>
+
+              <div class="row" id="config-detail-switch">
+                <input id="title" type="checkbox" /> &nbsp; Specify the title page
+              </div>
+
+              <div id="config-panel-detail" class="config-panel-detail">
+                <div class="row">
+                  <div class="select-panel detail-select-panel">
+                    <div class="list-container" id="xlist-container">
+                      <div v-for="file in data" :key="file.name" @click="files(file.name)">
+                        {{ file.name }}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="row">
+                  <input id="start_text" placeholder="Enter the title page text" class="text-input" />
+                </div>
               </div>
             </div>
           </div>
+
+          <!--=================-->
+
+          <br />
+          <div class="row">
+            <div>
+              <button type="button" @click="select()" v-if="!selected">Select</button>
+            </div>
+            <div>
+              <button type="button" @click="cancel()" v-if="selected">Cancel</button>
+            </div>
+            <div>
+              <button id="process-button" type="button" class="hidden">Process</button>
+            </div>
+          </div>
+
+          <p id="greet-msg">{{debug}}</p>
         </div>
-
-        <!--=================-->
-
-        <br />
-        <div class="row">
-          <div>
-            <button id="select-button" type="button">Select</button>
-          </div>
-          <div>
-            <button id="cancel-button" type="button" class="hidden">Cancel</button>
-          </div>
-          <div>
-            <button id="process-button" type="button" class="hidden">Process</button>
-          </div>
-        </div>
-
-        <p id="greet-msg" class="xxxhidden"></p>
       </div>
     </div>
   </body>

@@ -149,7 +149,6 @@ button {
   height: 15px;
   padding-left: 5px;
   padding-right: 10px;
-  filter: invert(83%) sepia(60%) saturate(200%) hue-rotate(-20deg);
 }
 .list-container > div:hover {
   background: #111;
