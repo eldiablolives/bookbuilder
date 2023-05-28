@@ -18,8 +18,17 @@
 
         <div class="subcontainer">
           <p>
-            <img src="assets/hard-drive.svg" class="icon-white" /> <img src="assets/home.svg" class="icon-white" />
-            <span>{{path}}</span>
+            <img src="assets/home.svg" class="icon-white" />
+            &nbsp;
+            <img src="assets/arrow-circle-left.svg" class="icon-white" />
+            &nbsp;
+
+            <span v-if="folders.partial">&hellip;</span>
+            <span v-for="folder in folders.folders" @click="files(file.name)">
+              <span class="folder-link">{{ folder }}</span><span>/</span>
+            </span>
+
+            <!-- <span>{{path}}</span> -->
           </p>
 
           <!-- ===============  -->
@@ -41,11 +50,11 @@
           <div id="config-panel" class="main-panel-base" v-if="selected">
             <div class="main-panel-info">
               <div class="row">
-                <input id="title" placeholder="Enter a book title" class="text-input" />
+                <input v-model="conf.title" type="text" placeholder="Enter a book title" class="text-input" />
               </div>
 
               <div class="row">
-                <input id="author" placeholder="Enter the book author" class="text-input" />
+                <input v-model="conf.author" placeholder="Enter the book author" class="text-input" />
               </div>
 
               <div class="row" id="config-detail-switch">
@@ -56,9 +65,7 @@
                 <div class="row">
                   <div class="select-panel detail-select-panel">
                     <div class="list-container" id="xlist-container">
-                      <div v-for="file in data" :key="file.name" @click="files(file.name)">
-                        {{ file.name }}
-                      </div>
+                      <div v-for="file in filtered" :key="file.name" @click="files(file.name)">{{ file.name }}</div>
                     </div>
                   </div>
                 </div>
@@ -82,6 +89,10 @@
             </div>
             <div>
               <button id="process-button" type="button" class="hidden">Process</button>
+            </div>
+
+            <div>
+              <a href="">Click here for users guide</a>
             </div>
           </div>
 

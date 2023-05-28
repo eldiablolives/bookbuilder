@@ -39,7 +39,7 @@
     "windows": [
       {
         "fullscreen": false,
-        "resizable": true,
+        "resizable": false,
         "title": "Book Builder",
         "width": 800,
         "height": 600

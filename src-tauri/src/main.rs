@@ -75,10 +75,20 @@ fn root() -> String {
 
 #[tauri::command]
 fn list(path: &str) -> String {
-    let entries = fs::read_dir(path);
+    let mut path = if path.is_empty() {
+        root()
+    } else {
+        path.to_string()
+    };
+
+    if !path.ends_with("/") {
+        path.push('/');
+    }
+
+    let entries = fs::read_dir(&path);
     let mut file_infos = Vec::new();
     let mut response = FileInfoResponse {
-        path: path.to_string(),
+        path: path.clone(),
         error: None,
         files: Vec::new(),
         conf: None,
@@ -129,7 +139,7 @@ fn list(path: &str) -> String {
 
             // If book.yaml or assets folder found, load the book configuration
             if has_book_conf {
-                match read_book_conf(path) {
+                match read_book_conf(&path) {
                     Ok(conf) => response.conf = Some(conf),
                     Err(err) => response.error = Some(err.to_string()),
                 }
@@ -147,43 +157,6 @@ fn list(path: &str) -> String {
     }
 }
 
-
-fn xlist(path: &str) -> String {
-    let entries = fs::read_dir(path);
-    let mut file_infos = Vec::new();
-
-    match entries {
-        Ok(entries) => {
-            for entry in entries {
-                match entry {
-                    Ok(entry) => {
-                        let file_name = entry.file_name().to_string_lossy().to_string();
-                        if file_name.starts_with('.') {
-                            continue;
-                        }
-                        // If path is "/" and the file_name starts with a lowercase letter, skip this entry
-                        if path == "/" && file_name.chars().next().map(|c| c.is_lowercase()).unwrap_or(false) {
-                            continue;
-                        }
-                        let metadata = match entry.metadata() {
-                            Ok(metadata) => metadata,
-                            Err(err) => return serde_json::to_string(&ErrorMessage { error: err.to_string() }).unwrap(),
-                        };
-                        file_infos.push(FileInfo {
-                            folder: metadata.is_dir(),
-                            name: file_name,
-                        });
-                    }
-                    Err(err) => return serde_json::to_string(&ErrorMessage { error: err.to_string() }).unwrap(),
-                }
-            }
-            // Sort the vector by file name
-            file_infos.sort_by(|a, b| a.name.cmp(&b.name));
-            serde_json::to_string(&file_infos).unwrap()
-        }
-        Err(err) => serde_json::to_string(&ErrorMessage { error: err.to_string() }).unwrap(),
-    }
-}
 
 fn make_epub(path: &String, epub_info: &EpubInfo) -> String {
     return "Dummy".to_string();

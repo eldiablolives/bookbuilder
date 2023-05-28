@@ -161,12 +161,19 @@ button
     background: #111
 
 .icon-white
-  height: 20px
+  height: 16px
   filter: invert(100%)
 
 .icon-yellow
-  height: 20px
+  height: 16px
   filter: invert(83%) sepia(60%) saturate(200%) hue-rotate(-20deg)
+
+.folder-link
+
+   &:hover
+    cursor: pointer
+    color: yellow
+    text-decoration: underline
 
 @media (prefers-color-scheme: dark)
   :root

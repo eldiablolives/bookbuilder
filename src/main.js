@@ -8,17 +8,39 @@ import { createApp } from './vue.esm-browser.js';
 const app = createApp({
   data() {
     return {
-      root: '/',
+      root: '',
       path: '',
       selected: '',
       data: [],
       debug: 'Debug messages',
+      conf: {},
     };
   },
   methods: {
     select,
     cancel,
     files,
+  },
+  computed: {
+    filtered() {
+      return this.data.filter((file) => !file.name.startsWith('_') && file.name.endsWith('.md'));
+    },
+    folders() {
+      let count = 0;
+      let res = { partial: false, folders: [] };
+      const split = this.path.split('/').slice(0, -1);
+      
+      for (let i = split.length - 1; i >= 0; i--) {
+        if (split[i].length + count < 40) {
+          res.folders.unshift(split[i]);
+          count += split[i].length;
+        } else {
+          res.partial = true;
+          break;
+        }
+      }
+      return res;
+    },
   },
 }).mount('#app');
 
@@ -35,22 +57,26 @@ async function files(path) {
 
   if (!data.error) {
     app.data = data.files;
-    app.root = path ? app.root + path + '/' : app.root;
-    app.path = app.root;
+    path = data.path;
+    app.root = app.path = data.path;
 
-    // check if book.yaml is present and read it if so
-    for (file of files) {
-      if (file.name == 'book.yaml') {
-        let res = await readConfig(app.root + 'book.yaml');
-        config = JSON.parse(res);
-        break;
-      }
+    if (data.conf) {
+      app.conf = data.conf;
     }
+
+    // // check if book.yaml is present and read it if so
+    // for (file of files) {
+    //   if (file.name == 'book.yaml') {
+    //     let res = await readConfig(app.root + 'book.yaml');
+    //     config = JSON.parse(res);
+    //     break;
+    //   }
+    // }
   }
 }
 
 async function init() {
-  app.root = await invoke('root');
+  // app.root = await invoke('root');
   files();
 }
 
