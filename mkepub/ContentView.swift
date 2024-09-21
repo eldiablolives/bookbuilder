@@ -4,10 +4,11 @@ import AppKit
 struct ContentView: View {
     @StateObject var fileHelper = FileHelper()
     @State private var selectedTab = "eBook"
-
+    
     @State private var dividerPosition: CGFloat = 0.3
     @State private var isHoveringOverDivider: Bool = false
-
+    @State private var initialDividerPosition: CGFloat = 0.3 // Add initial divider position tracking
+    
     var body: some View {
         GeometryReader { geometry in
             HStack(spacing: 0) {
@@ -68,12 +69,19 @@ struct ContentView: View {
                     .gesture(
                         DragGesture()
                             .onChanged { value in
-                                let newDividerPosition = value.location.x / geometry.size.width
-                                dividerPosition = min(max(newDividerPosition, 0.2), 0.8)
+                                let totalWidth = geometry.size.width
+                                let deltaX = value.translation.width / totalWidth
+                                dividerPosition = min(max(initialDividerPosition + deltaX, 0.2), 0.8)
+                            }
+                            .onEnded { _ in
+                                initialDividerPosition = dividerPosition // Store the final position
+                            }
+                            .onChanged { _ in
+                                initialDividerPosition = dividerPosition
                             }
                     )
 
-                // Right panel
+                // Right panel with all the content (remaining code as it was)
                 VStack {
                     HStack(alignment: .top) {
                         VStack(alignment: .leading) {
@@ -145,7 +153,6 @@ struct ContentView: View {
                                     }
                                     .padding(.top, 8)
 
-                                    // Make eBook button with destination folder selection
                                     Button(action: {
                                         fileHelper.selectedBookType = .eBook
                                         selectDestinationFolder { destFolder in
@@ -172,7 +179,6 @@ struct ContentView: View {
                                         .font(.subheadline)
                                         .padding()
 
-                                    // Make Print Book button with destination folder selection
                                     Button(action: {
                                         fileHelper.selectedBookType = .printBook
                                         selectDestinationFolder { destFolder in
@@ -224,9 +230,9 @@ struct ContentView: View {
 
         panel.begin { response in
             if response == .OK {
-                completion(panel.url) // Return the selected folder URL
+                completion(panel.url)
             } else {
-                completion(nil) // User canceled
+                completion(nil)
             }
         }
     }
