@@ -1,10 +1,23 @@
 import SwiftUI
 import AppKit
 import UniformTypeIdentifiers
+import PDFKit
 
 enum BookType: String, CaseIterable {
     case eBook = "eBook"
     case printBook = "Print"
+}
+
+enum PreviewType {
+    case text(content: String)
+    case image(content: NSImage)
+    case pdf(content: PDFDocument)
+    case html(content: String)
+}
+
+struct FilePreview {
+    let type: PreviewType
+    let filePath: String
 }
 
 class FileHelper: ObservableObject {
@@ -141,5 +154,51 @@ class FileHelper: ObservableObject {
             images: images,
             documents: selectedFiles.map { $0.path }
         )
+    }
+
+    // Function to preview files
+    func getPreview(for path: String) -> FilePreview? {
+        let fileURL = URL(fileURLWithPath: path)
+        let fileExtension = fileURL.pathExtension.lowercased()
+
+        do {
+            switch fileExtension {
+            case "txt", "md":
+                let textContent = try String(contentsOf: fileURL, encoding: .utf8)
+                return FilePreview(type: .text(content: textContent), filePath: path)
+            case "html", "htm":
+                let htmlContent = try String(contentsOf: fileURL, encoding: .utf8)
+                return FilePreview(type: .html(content: htmlContent), filePath: path)
+            case "jpg", "png":
+                if let image = NSImage(contentsOf: fileURL) {
+                    return FilePreview(type: .image(content: image), filePath: path)
+                }
+            case "pdf":
+                if let pdfDocument = PDFDocument(url: fileURL) {
+                    return FilePreview(type: .pdf(content: pdfDocument), filePath: path)
+                }
+            default:
+                print("Unsupported file type: \(fileExtension)")
+            }
+        } catch {
+            print("Error loading file: \(error)")
+        }
+        return nil
+    }
+    
+    // Helper function to open folder picker for destination folder
+    func selectDestinationFolder(completion: @escaping (URL?) -> Void) {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.allowsMultipleSelection = false
+
+        panel.begin { response in
+            if response == .OK {
+                completion(panel.url)
+            } else {
+                completion(nil)
+            }
+        }
     }
 }

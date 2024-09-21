@@ -1,60 +1,35 @@
 import SwiftUI
-import AppKit
+import WebKit
 
 struct ContentView: View {
     @StateObject var fileHelper = FileHelper()
-    @State private var selectedTab = "eBook"
+    @State private var selectedTab = "eBook"   // For Export Types tab
+    @State private var rightPanelTab = "Source"   // For the rightmost panel tabs
+    @State private var sourceText = ""   // Plain text content for Source tab
+    @State private var htmlContent = ""  // HTML content for Preview tab
     
-    @State private var dividerPosition: CGFloat = 0.3
+    @State private var dividerPosition: CGFloat = 0.3  // Left divider
+    @State private var dividerPositionRight: CGFloat = 0.7  // Right divider
     @State private var isHoveringOverDivider: Bool = false
-    @State private var initialDividerPosition: CGFloat = 0.3 // Add initial divider position tracking
-    
+    @State private var initialDividerPosition: CGFloat = 0.3
+    @State private var initialDividerPositionRight: CGFloat = 0.7
+
     var body: some View {
         GeometryReader { geometry in
             HStack(spacing: 0) {
-                // Left panel
-                VStack {
-                    Button(action: {
-                        fileHelper.openFolderPicker()
-                    }) {
-                        Text("Select Folder")
-                    }
-                    .padding(.top, 8)
-
-                    if let folder = fileHelper.selectedFolder {
-                        Text("Selected folder: \(folder.path)")
-                            .padding(.top, 8)
-                            .lineLimit(1)
-                            .truncationMode(.middle)
-                    }
-
-                    Text("All Files")
-                        .font(.headline)
-                        .padding(.top, 16)
-
-                    List {
-                        ForEach(fileHelper.filesInFolder.indices, id: \.self) { index in
-                            let fileURL = fileHelper.filesInFolder[index]
-                            let fileExtension = fileURL.pathExtension.lowercased()
-
-                            if ["md", "txt", "jpg", "png"].contains(fileExtension) {
-                                HStack {
-                                    Toggle(isOn: Binding(
-                                        get: { fileHelper.checkedFiles[index] },
-                                        set: { newValue in
-                                            fileHelper.checkedFiles[index] = newValue
-                                            fileHelper.updateSelectedFiles(for: fileURL, isChecked: newValue)
-                                        })) {
-                                        Text(fileURL.lastPathComponent)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+                // Left panel extracted to LeftPanelView
+                LeftPanelView(
+                    fileHelper: fileHelper,
+                    dividerPosition: $dividerPosition,
+                    isHoveringOverDivider: $isHoveringOverDivider,
+                    initialDividerPosition: $initialDividerPosition,
+                    dividerPositionRight: $dividerPositionRight,
+                    geometry: geometry
+                )
                 .frame(width: geometry.size.width * dividerPosition)
                 .background(Color.gray.opacity(0.1))
 
+                // First Divider
                 Divider()
                     .frame(width: 2)
                     .background(Color.gray)
@@ -71,17 +46,14 @@ struct ContentView: View {
                             .onChanged { value in
                                 let totalWidth = geometry.size.width
                                 let deltaX = value.translation.width / totalWidth
-                                dividerPosition = min(max(initialDividerPosition + deltaX, 0.2), 0.8)
+                                dividerPosition = min(max(initialDividerPosition + deltaX, 0.2), dividerPositionRight - 0.1) // Prevent overlap
                             }
                             .onEnded { _ in
-                                initialDividerPosition = dividerPosition // Store the final position
-                            }
-                            .onChanged { _ in
                                 initialDividerPosition = dividerPosition
                             }
                     )
 
-                // Right panel with all the content (remaining code as it was)
+                // Middle panel (existing content)
                 VStack {
                     HStack(alignment: .top) {
                         VStack(alignment: .leading) {
@@ -97,7 +69,7 @@ struct ContentView: View {
                                 .font(.headline)
                                 .padding(.top, 8)
 
-                            Picker("Export Type", selection: $selectedTab) {
+                            Picker("", selection: $selectedTab) {
                                 Text("eBook").tag("eBook")
                                 Text("HTML").tag("HTML")
                                 Text("PDF").tag("PDF")
@@ -155,7 +127,7 @@ struct ContentView: View {
 
                                     Button(action: {
                                         fileHelper.selectedBookType = .eBook
-                                        selectDestinationFolder { destFolder in
+                                        fileHelper.selectDestinationFolder { destFolder in
                                             guard let destFolder = destFolder, let selectedFolder = fileHelper.selectedFolder else { return }
 
                                             var epubInfo = fileHelper.generateEpubInfo()
@@ -181,7 +153,7 @@ struct ContentView: View {
 
                                     Button(action: {
                                         fileHelper.selectedBookType = .printBook
-                                        selectDestinationFolder { destFolder in
+                                        fileHelper.selectDestinationFolder { destFolder in
                                             guard let destFolder = destFolder, let selectedFolder = fileHelper.selectedFolder else { return }
 
                                             var epubInfo = fileHelper.generateEpubInfo()
@@ -216,25 +188,58 @@ struct ContentView: View {
                     .frame(maxWidth: .infinity)
                     .padding()
                 }
-                .padding()
+                .frame(width: geometry.size.width * (dividerPositionRight - dividerPosition))
+                .background(Color.gray.opacity(0.1))
+
+                // Second Divider (rightmost divider)
+                Divider()
+                    .frame(width: 2)
+                    .background(Color.gray)
+                    .onHover { hovering in
+                        isHoveringOverDivider = hovering
+                        if hovering {
+                            NSCursor.resizeLeftRight.push()
+                        } else {
+                            NSCursor.pop()
+                        }
+                    }
+                    .gesture(
+                        DragGesture()
+                            .onChanged { value in
+                                let totalWidth = geometry.size.width
+                                let deltaX = value.translation.width / totalWidth
+                                dividerPositionRight = min(max(initialDividerPositionRight + deltaX, dividerPosition + 0.1), 0.8) // Prevent overlap
+                            }
+                            .onEnded { _ in
+                                initialDividerPositionRight = dividerPositionRight
+                            }
+                    )
+
+                // Rightmost panel extracted to RightPanelView
+                RightPanelView(
+                    rightPanelTab: $rightPanelTab,
+                    sourceText: $sourceText,
+                    htmlContent: $htmlContent,
+                    dividerPositionRight: $dividerPositionRight,
+                    geometry: geometry
+                )
+                .frame(width: geometry.size.width * (1 - dividerPositionRight))
+                .background(Color.gray.opacity(0.1))
             }
         }
     }
+}
 
-    // Helper function to open folder picker for destination folder
-    func selectDestinationFolder(completion: @escaping (URL?) -> Void) {
-        let panel = NSOpenPanel()
-        panel.canChooseFiles = false
-        panel.canChooseDirectories = true
-        panel.allowsMultipleSelection = false
+struct WebView: NSViewRepresentable {
+    var htmlContent: String
 
-        panel.begin { response in
-            if response == .OK {
-                completion(panel.url)
-            } else {
-                completion(nil)
-            }
-        }
+    func makeNSView(context: Context) -> WKWebView {
+        let webView = WKWebView()
+        return webView
+    }
+
+    func updateNSView(_ nsView: WKWebView, context: Context) {
+        nsView.loadHTMLString(htmlContent, baseURL: nil)
     }
 }
 

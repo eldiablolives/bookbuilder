@@ -8,6 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		120786602C9ED6D70088573B /* ContentViewHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1207865F2C9ED6D70088573B /* ContentViewHelpers.swift */; };
+		120786622C9EFFA50088573B /* LeftPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 120786612C9EFFA50088573B /* LeftPanelView.swift */; };
+		120786642C9F052E0088573B /* RightPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 120786632C9F052E0088573B /* RightPanelView.swift */; };
 		127213662C9811BD00497EDD /* MakeBook.swift in Sources */ = {isa = PBXBuildFile; fileRef = 127213652C9811BD00497EDD /* MakeBook.swift */; };
 		127213682C9825F400497EDD /* Preprocess.swift in Sources */ = {isa = PBXBuildFile; fileRef = 127213672C9825F400497EDD /* Preprocess.swift */; };
 		1272136A2C9827CD00497EDD /* Compress.swift in Sources */ = {isa = PBXBuildFile; fileRef = 127213692C9827CD00497EDD /* Compress.swift */; };
@@ -26,6 +28,8 @@
 
 /* Begin PBXFileReference section */
 		1207865F2C9ED6D70088573B /* ContentViewHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentViewHelpers.swift; sourceTree = "<group>"; };
+		120786612C9EFFA50088573B /* LeftPanelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LeftPanelView.swift; sourceTree = "<group>"; };
+		120786632C9F052E0088573B /* RightPanelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RightPanelView.swift; sourceTree = "<group>"; };
 		127213652C9811BD00497EDD /* MakeBook.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MakeBook.swift; sourceTree = "<group>"; };
 		127213672C9825F400497EDD /* Preprocess.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Preprocess.swift; sourceTree = "<group>"; };
 		127213692C9827CD00497EDD /* Compress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Compress.swift; sourceTree = "<group>"; };
@@ -88,6 +92,8 @@
 				127213772C98461000497EDD /* LogView.swift */,
 				1272137B2C9ABA5900497EDD /* TeXBook.swift */,
 				1207865F2C9ED6D70088573B /* ContentViewHelpers.swift */,
+				120786612C9EFFA50088573B /* LeftPanelView.swift */,
+				120786632C9F052E0088573B /* RightPanelView.swift */,
 			);
 			path = mkepub;
 			sourceTree = "<group>";
@@ -181,12 +187,14 @@
 				1272136F2C982ADE00497EDD /* Util.swift in Sources */,
 				127213662C9811BD00497EDD /* MakeBook.swift in Sources */,
 				127213732C98344B00497EDD /* Types.swift in Sources */,
+				120786622C9EFFA50088573B /* LeftPanelView.swift in Sources */,
 				12A503762C97EC8E00F0008E /* mkepubApp.swift in Sources */,
 				127213682C9825F400497EDD /* Preprocess.swift in Sources */,
 				127213712C982B9700497EDD /* Epub.swift in Sources */,
 				127213782C98461000497EDD /* LogView.swift in Sources */,
 				1272137C2C9ABA5900497EDD /* TeXBook.swift in Sources */,
 				120786602C9ED6D70088573B /* ContentViewHelpers.swift in Sources */,
+				120786642C9F052E0088573B /* RightPanelView.swift in Sources */,
 				1272136A2C9827CD00497EDD /* Compress.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
