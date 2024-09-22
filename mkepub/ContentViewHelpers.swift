@@ -133,9 +133,49 @@ class FileHelper: ObservableObject {
             addedFonts.append(url)
         }
     }
-
+    
     // Function to generate and return the EpubInfo object
     func generateEpubInfo() -> EpubInfo {
+        // Helper function to check if a file is an image based on its extension
+        func isImageFile(_ url: URL) -> Bool {
+            let imageExtensions = ["jpg", "jpeg", "png"]
+            return imageExtensions.contains(url.pathExtension.lowercased())
+        }
+
+        // Get the paths for the added images
+        var images = addedImages.map { $0.standardizedFileURL.path }
+
+        // If a cover image is present, append its path
+        if let coverImagePath = coverImagePath?.standardizedFileURL.path {
+            images.append(coverImagePath)
+        }
+
+        // Filter the documents to get only image files and use standardizedFileURL to deduplicate
+        let documentImages = selectedFiles
+            .filter { isImageFile($0) }
+            .map { $0.standardizedFileURL.path }
+
+        // Combine added images and document images, and remove duplicates
+        let allImages = Array(Set(images + documentImages))
+
+        // Return the EpubInfo object with the updated images array
+        return EpubInfo(
+            id: UUID().uuidString,
+            name: bookTitle.isEmpty ? "Untitled Book" : bookTitle,
+            author: author.isEmpty ? "Unknown Author" : author,
+            title: bookTitle.isEmpty ? "Untitled Book" : bookTitle,
+            start: nil,
+            startTitle: nil,
+            cover: coverImagePath?.standardizedFileURL.path, // Convert URL to String here
+            style: selectedStyleFile?.path,
+            fonts: addedFonts.map { $0.path },
+            images: allImages, // Use the deduplicated images array here
+            documents: selectedFiles.map { $0.path }
+        )
+    }
+
+    // Function to generate and return the EpubInfo object
+    func XXXgenerateEpubInfo() -> EpubInfo {
         var images = addedImages.map { $0.path }
         if let coverImagePath = coverImagePath?.path {
             images.append(coverImagePath)

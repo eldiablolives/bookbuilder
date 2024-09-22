@@ -242,12 +242,6 @@ func preprocessMarkdown(text: String) -> String {
     content = replaceQuotes(in: content)
     content = fixPunctuation(in: content)
 
-    // Remove extra spaces (commented out, but can be re-enabled if needed)
-    // content = removeExtraSpaces(from: content)
-
-    // Replace breaks
-    content = replaceBreaks(in: content)
-
     // Handle preprocessing for any {{command}}
     let pattern = #"\{\{(.*?)\}\}"# // Regex pattern to match {{command params}}
     
@@ -276,34 +270,18 @@ func preprocessMarkdown(text: String) -> String {
         }
     }
     
+    // Remove extra spaces (commented out, but can be re-enabled if needed)
+//     content = removeExtraSpaces(from: content)
+
+    // Replace breaks
+    content = replaceBreaks(in: content)
+
     // Fix anomalies
     content = fixEmAnomaly(in: content)
     content = fixTshirtAnomaly(in: content)
 
     
     return content
-}
-
-func xxpreprocessMarkdown(text: String) -> String {
-    // Remove spaces between quotes and punctuation
-    var content = removeSpacesBetweenQuotesAndPunctuation(in: text)
-
-    // Replace quotes and apostrophes with curly ones and fix punctuation placement
-    content = replaceQuotes(in: content)
-    content = fixPunctuation(in: content)
-
-    // Fix anomalies
-    content = fixEmAnomaly(in: content)
-    content = fixTshirtAnomaly(in: content)
-
-    // Remove extra spaces
-//    content = removeExtraSpaces(from: content)
-
-    // Replace breaks
-    content = replaceBreaks(in: content)
-    
-    
-    return content;
 }
 
 func isPunctuation(_ ch: Character) -> Bool {
@@ -379,7 +357,21 @@ func removeSpacesBetweenQuotesAndPunctuation(in text: String) -> String {
 }
 
 func replaceBreaks(in text: String) -> String {
-    return text.replacingOccurrences(of: "\n----\n", with: "\n\n&nbsp;\n\n<div class=\"center\">***</div>\n\n&nbsp;\n\n")
+    // Regular expression pattern to match lines with only dashes (and possibly spaces)
+    let pattern = #"^\s*----+\s*$"#
+    
+    // Use regular expression to replace matching lines
+    let regex = try! NSRegularExpression(pattern: pattern, options: .anchorsMatchLines)
+    
+    // Perform the replacement
+    let modifiedText = regex.stringByReplacingMatches(
+        in: text,
+        options: [],
+        range: NSRange(text.startIndex..., in: text),
+        withTemplate: "\n\n<p class=\"center scene-break\">* * *</p>\n\n"
+    )
+    
+    return modifiedText
 }
 
 func replaceQuotes(in text: String) -> String {

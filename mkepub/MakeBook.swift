@@ -46,61 +46,6 @@ func makeBook(folderURL: URL, epubInfo: inout EpubInfo, destFolder: URL?) {
     compressEPUB(folderURL: destPath)
 }
 
-
-func XXXcheckFontFiles(in folderURL: URL) throws -> [String]? {
-    let fileManager = FileManager.default
-    var fontFiles = [String]()
-    
-    // Get the list of files in the directory
-    let entries = try fileManager.contentsOfDirectory(atPath: folderURL.path)
-    
-    // Iterate over each entry
-    for entry in entries {
-        let fullPathURL = folderURL.appendingPathComponent(entry)
-        var isDir: ObjCBool = false
-        
-        // Check if the entry is a file (not a directory)
-        if fileManager.fileExists(atPath: fullPathURL.path, isDirectory: &isDir), !isDir.boolValue {
-            let fileExtension = fullPathURL.pathExtension.lowercased()
-            
-            // Check if the file extension is "ttf" or "otf"
-            if fileExtension == "ttf" || fileExtension == "otf" {
-                fontFiles.append(entry)
-            }
-        }
-    }
-    
-    // If no font files are found, return nil, otherwise return the list
-    return fontFiles.isEmpty ? nil : fontFiles
-}
-
-func XXXcheckImageFiles(in folderURL: URL) throws -> [String]? {
-    let fileManager = FileManager.default
-    var imageFiles = [String]()
-    
-    // Get the list of files in the directory
-    let entries = try fileManager.contentsOfDirectory(atPath: folderURL.path)
-    
-    // Iterate over each entry
-    for entry in entries {
-        let fileURL = folderURL.appendingPathComponent(entry)
-        var isDir: ObjCBool = false
-        
-        // Check if the entry is a file (not a directory)
-        if fileManager.fileExists(atPath: fileURL.path, isDirectory: &isDir), !isDir.boolValue {
-            let fileExtension = fileURL.pathExtension.lowercased()
-            
-            // Check if the file extension is "jpg" or "png"
-            if fileExtension == "jpg" || fileExtension == "png" {
-                imageFiles.append(entry)
-            }
-        }
-    }
-    
-    // If no image files are found, return nil, otherwise return the list
-    return imageFiles.isEmpty ? nil : imageFiles
-}
-
 func createMimetypeFile(destPath: URL) {
 //    let fileManager = FileManager.default
     let filePath = destPath.appendingPathComponent("mimetype")
@@ -133,50 +78,6 @@ func rearrangeStartPage(epubInfo: EpubInfo, pages: [Page]) -> [Page] {
     }
 
     return rearrangedPages
-}
-
-func XXXcopyFiles(sourceURL: URL, destURL: URL) {
-    let fileManager = FileManager.default
-    
-    // Create necessary directories
-    let opsSubdirs = ["css", "images", "fonts", "js"]
-    for subdir in opsSubdirs {
-        let dir = destURL.appendingPathComponent("OPS").appendingPathComponent(subdir)
-        do {
-            try fileManager.createDirectory(at: dir, withIntermediateDirectories: true, attributes: nil)
-        } catch {
-            logger.log("Error creating directory \(dir.path): \(error)")
-        }
-    }
-
-    // Helper function to copy files with a certain extension to a directory
-    func copyFilesToDir(dir: URL, ext: String, entries: [URL]) {
-        for entry in entries {
-            if entry.pathExtension == ext {
-                let dest = dir.appendingPathComponent(entry.lastPathComponent)
-                do {
-                    try fileManager.copyItem(at: entry, to: dest)
-                } catch {
-                    logger.log("Error copying file \(entry.path) to \(dest.path): \(error)")
-                }
-            }
-        }
-    }
-
-    // Get all entries in the source directory
-    do {
-        let entries = try fileManager.contentsOfDirectory(at: sourceURL, includingPropertiesForKeys: nil)
-        
-        // Copy files to the appropriate directories
-        copyFilesToDir(dir: destURL.appendingPathComponent("OPS/css"), ext: "css", entries: entries)
-        copyFilesToDir(dir: destURL.appendingPathComponent("OPS/images"), ext: "png", entries: entries)
-        copyFilesToDir(dir: destURL.appendingPathComponent("OPS/images"), ext: "jpg", entries: entries)
-        copyFilesToDir(dir: destURL.appendingPathComponent("OPS/fonts"), ext: "ttf", entries: entries)
-        copyFilesToDir(dir: destURL.appendingPathComponent("OPS/fonts"), ext: "otf", entries: entries)
-        copyFilesToDir(dir: destURL.appendingPathComponent("OPS/js"), ext: "js", entries: entries)
-    } catch {
-        logger.log("Error reading contents of directory \(sourceURL.path): \(error)")
-    }
 }
 
 func copyResources(epubInfo: EpubInfo, destURL: URL) {
@@ -242,6 +143,26 @@ func copyResources(epubInfo: EpubInfo, destURL: URL) {
 }
 
 func renderMarkdownToPage(source: URL) -> Page {
+    // Helper function to check if a file is an image
+    func isImageFile(_ url: URL) -> Bool {
+        let imageExtensions = ["jpg", "jpeg", "png"]
+        return imageExtensions.contains(url.pathExtension.lowercased())
+    }
+
+    // Get the full file name including extension
+    let fileNameWithExtension = source.lastPathComponent
+
+    // Check if the source URL is an image
+    if isImageFile(source) {
+        // Return the <img> tag with the full file name including the extension
+        let imageTag = "<img src=\"../images/\(fileNameWithExtension)\" class=\"cover\"/>"
+        
+        // Create a new Page instance with the image tag as the body
+        return Page(name: fileNameWithExtension, file: sanitizeName(fileNameWithExtension), title: "", body: imageTag)
+    }
+
+    // If it's not an image, proceed to read the file and process the markdown
+
     // Read the Markdown file content
     let rawContent: String
     do {
@@ -260,14 +181,11 @@ func renderMarkdownToPage(source: URL) -> Page {
     // Extract the title from the Markdown content
     let title = extractTitle(from: markdownContent)
 
-    // Get the file name without full path and extension
-    let name = getFileName(from: source)
-
-    // Sanitize the file name
-    let file = sanitizeName(name)
+    // Sanitize the file name (without extension, if necessary)
+    let file = sanitizeName(source.deletingPathExtension().lastPathComponent)
 
     // Create a new Page instance with the extracted title, XHTML content, and file name
-    return Page(name: name, file: file, title: title, body: htmlContent)
+    return Page(name: file, file: file, title: title, body: htmlContent)
 }
 
 func processDocuments(from epubInfo: EpubInfo) -> [Page] {
@@ -277,10 +195,10 @@ func processDocuments(from epubInfo: EpubInfo) -> [Page] {
     // Filter the Markdown files from the EpubInfo documents
     markdownFiles = epubInfo.documents.compactMap { documentPath -> URL? in
         let fileURL = URL(fileURLWithPath: documentPath)
-        let fileExtension = fileURL.pathExtension.lowercased()
+        _ = fileURL.pathExtension.lowercased()
 
         // Check if the file is a Markdown file (with .md extension) and doesn't start with '_'
-        if fileExtension == "md" && fileManager.fileExists(atPath: fileURL.path) {
+        if fileManager.fileExists(atPath: fileURL.path) {
             return fileURL
         }
         return nil
