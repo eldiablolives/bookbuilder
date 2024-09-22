@@ -7,7 +7,284 @@
 
 import Foundation
 
+// Preprocess function to handle specific commands or reconstruct the original if not recognized
+func preprocessePubCommand(_ command: String, _ params: String? = nil) -> String {
+    var result: String
+    
+    // Handle the "chapter" command
+    if command == "chapter" {
+        if let params = params {
+            // Split the input at the "|" character (optional part)
+            let parts = params.split(separator: "|", maxSplits: 1).map { String($0).trimmingCharacters(in: .whitespaces) }
+            let chapterHeading = parts[0] // Always present (e.g., "Chapter 1")
+
+            // Check if the optional title (after "|") is provided
+            if parts.count > 1 {
+                let chapterTitle = parts[1] // Optional title (e.g., "Perfect day")
+                result = """
+                <div class="chapter-heading">
+                \(chapterHeading)
+                </div>
+                # \(chapterTitle)
+                """
+            } else {
+                // If no title is provided, just use the chapter heading and add it to the TOC
+                result = """
+                # \(chapterHeading)
+                """
+            }
+        } else {
+            result = "{{chapter}}" // In case no params are provided
+        }
+    }
+    
+    // Handle the "break" command
+    else if command == "break" {
+        result = "<br/>"
+    }
+    
+    // Handle the "pagebreak" command (ensure it happens on the right-hand page)
+    else if command == "pagebreak" {
+        result = ""
+    }
+    
+    // Handle the "copyright" command
+    else if command == "copyright" {
+        if let params = params {
+            result = """
+            <div class="copyright">
+            \(params)
+            </div>
+            """
+        } else {
+            result = """
+            <div class="copyright">
+            Copyright
+            </div>
+            """
+        }
+    }
+    
+    // Handle the "email" command
+    else if command == "email" {
+        if let params = params {
+            result = """
+            <a class="email" href="\(params)">\(params)</a>
+            """
+        } else {
+            result = """
+            <div class="email">Email Address
+            </div>
+            """
+        }
+    }
+    
+    // Handle the "quote" command
+    else if command == "quote" {
+        if let params = params {
+            result = """
+            <div class="quote">
+            \(params)
+            </div>
+            """
+        } else {
+            result = """
+            <div class="quote">
+            Quote
+            </div>
+            """
+        }
+    }
+    
+    // Handle the "hero" command
+    else if command == "hero" {
+        if let params = params {
+            result = """
+            <div class="hero">
+            \(params)
+            </div>
+            """
+        } else {
+            result = """
+            <div class="hero">
+            Hero Text
+            </div>
+            """
+        }
+    }
+    
+    // Handle the "cover" command
+    else if command == "cover" {
+        if let params = params {
+            result = """
+            \\cleardoublepage % Ensure the image starts on a new right-hand page
+            
+            % Turn off page numbers and headers/footers for this page
+            \\thispagestyle{empty}
+            
+            % Temporarily reset margins to zero for the image page
+            \\newgeometry{margin=0pt}
+            
+            % Stretch the image to cover the entire page, including the bleed
+            \\noindent
+            \\includegraphics[width=\\paperwidth, height=\\paperheight]{\(params)}
+            
+            % Restore original geometry for the rest of the document
+            \\restoregeometry
+            
+            \\clearpage % Move to the next page
+            """
+        } else {
+            result = """
+            \\cleardoublepage % Ensure the image starts on a new right-hand page
+            
+            % Turn off page numbers and headers/footers for this page
+            \\thispagestyle{empty}
+            
+            % Temporarily reset margins to zero for the image page
+            \\newgeometry{margin=0pt}
+            
+            % Stretch the image to cover the entire page, including the bleed
+            \\noindent
+            \\includegraphics[width=\\paperwidth, height=\\paperheight]{path/to/your-cover.jpg}
+            
+            % Restore original geometry for the rest of the document
+            \\restoregeometry
+            
+            \\clearpage % Move to the next page
+            """
+        }
+    }
+    
+    // Handle the "link" command
+    else if command == "link" {
+        if let params = params {
+            // Split the URL and optional description at the '|' character
+            let parts = params.split(separator: "|", maxSplits: 1).map { String($0) }
+            let url = parts[0] // URL part
+            
+            // Remove the protocol from the URL (http:// or https://)
+            if let urlWithoutProtocol = url.components(separatedBy: "://").last {
+                result = urlWithoutProtocol
+            } else {
+                result = url // In case there's no protocol (e.g., the URL was just 'example.com')
+            }
+        } else {
+            result = "{{link}}"
+        }
+    }
+    
+    else if command == "title" {
+        if let params = params {
+            result = """
+            <div class="title">
+            \(params)
+            </div>
+            """
+        } else {
+            result = """
+            <div class="title">
+            Title
+            </div>
+            """
+        }
+    }
+
+    else if command == "subtitle" {
+        if let params = params {
+            result = """
+            <div class="subtitle">
+            \(params)
+            </div>
+            """
+        } else {
+            result = """
+            <div class="subtitle">
+            Subtitle
+            </div>
+            """
+        }
+    }
+
+    else if command == "author" {
+        if let params = params {
+            result = """
+            <div class="author">
+            \(params)
+            </div>
+            """
+        } else {
+            result = """
+            <div class="author">
+            Author
+            </div>
+            """
+        }
+    }
+    
+    // If the command is not recognized, reconstruct the original {{command params}}
+    else {
+        if let params = params {
+            result = "{{\(command) \(params)}}"
+        } else {
+            result = "{{\(command)}}"
+        }
+    }
+
+    return result
+}
+
 func preprocessMarkdown(text: String) -> String {
+    // Remove spaces between quotes and punctuation
+    var content = removeSpacesBetweenQuotesAndPunctuation(in: text)
+
+    // Replace quotes and apostrophes with curly ones and fix punctuation placement
+    content = replaceQuotes(in: content)
+    content = fixPunctuation(in: content)
+
+    // Remove extra spaces (commented out, but can be re-enabled if needed)
+    // content = removeExtraSpaces(from: content)
+
+    // Replace breaks
+    content = replaceBreaks(in: content)
+
+    // Handle preprocessing for any {{command}}
+    let pattern = #"\{\{(.*?)\}\}"# // Regex pattern to match {{command params}}
+    
+    if let regex = try? NSRegularExpression(pattern: pattern) {
+        let matches = regex.matches(in: content, range: NSRange(content.startIndex..., in: content))
+        
+        // Process matches in reverse order to avoid messing with ranges
+        for match in matches.reversed() {
+            if let range = Range(match.range, in: content) {
+                let commandString = String(content[range])
+                
+                // Extract the inner content (command + params) from {{ }}
+                let innerContent = commandString.dropFirst(2).dropLast(2).trimmingCharacters(in: .whitespaces)
+                
+                // Split inner content into command and optional params
+                let components = innerContent.split(separator: " ", maxSplits: 1).map { String($0) }
+                let command = components.first ?? ""
+                let params = components.count > 1 ? components.last : nil
+                
+                // Process the command using the preprocess function
+                let processed = preprocessePubCommand(command, params)
+                
+                // Replace the original {{command}} with the processed result
+                content.replaceSubrange(range, with: processed)
+            }
+        }
+    }
+    
+    // Fix anomalies
+    content = fixEmAnomaly(in: content)
+    content = fixTshirtAnomaly(in: content)
+
+    
+    return content
+}
+
+func xxpreprocessMarkdown(text: String) -> String {
     // Remove spaces between quotes and punctuation
     var content = removeSpacesBetweenQuotesAndPunctuation(in: text)
 
@@ -23,7 +300,10 @@ func preprocessMarkdown(text: String) -> String {
 //    content = removeExtraSpaces(from: content)
 
     // Replace breaks
-    return replaceBreaks(in: content)
+    content = replaceBreaks(in: content)
+    
+    
+    return content;
 }
 
 func isPunctuation(_ ch: Character) -> Bool {

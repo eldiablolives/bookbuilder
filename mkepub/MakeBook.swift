@@ -47,7 +47,7 @@ func makeBook(folderURL: URL, epubInfo: inout EpubInfo, destFolder: URL?) {
 }
 
 
-func checkFontFiles(in folderURL: URL) throws -> [String]? {
+func XXXcheckFontFiles(in folderURL: URL) throws -> [String]? {
     let fileManager = FileManager.default
     var fontFiles = [String]()
     
@@ -74,7 +74,7 @@ func checkFontFiles(in folderURL: URL) throws -> [String]? {
     return fontFiles.isEmpty ? nil : fontFiles
 }
 
-func checkImageFiles(in folderURL: URL) throws -> [String]? {
+func XXXcheckImageFiles(in folderURL: URL) throws -> [String]? {
     let fileManager = FileManager.default
     var imageFiles = [String]()
     
@@ -135,7 +135,7 @@ func rearrangeStartPage(epubInfo: EpubInfo, pages: [Page]) -> [Page] {
     return rearrangedPages
 }
 
-func copyFiles(sourceURL: URL, destURL: URL) {
+func XXXcopyFiles(sourceURL: URL, destURL: URL) {
     let fileManager = FileManager.default
     
     // Create necessary directories
