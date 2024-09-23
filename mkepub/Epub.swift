@@ -148,10 +148,10 @@ func createContentOpfContent(epubInfo: EpubInfo, pages: [Page]) -> String {
 
     // Create manifest items for images
     let imageItems = epubInfo.images?.map { image in
-        let imageFileName = URL(fileURLWithPath: image).lastPathComponent
+        let imageFileName = sanitizeImageName( URL(fileURLWithPath: image).lastPathComponent )
         let imageId = imageFileName.split(separator: ".").first.map(String.init) ?? ""
         return """
-        <item id="\(imageId)" href="images/\(imageFileName)" media-type="image/jpeg" />
+        <item id="img-\(imageId)" href="images/\(imageFileName)" media-type="image/jpeg" />
         """
     }.joined(separator: "\n") ?? ""
 
@@ -164,7 +164,7 @@ func createContentOpfContent(epubInfo: EpubInfo, pages: [Page]) -> String {
         <dc:creator>\(epubInfo.author)</dc:creator>
         <dc:language>en</dc:language>
         <meta property="dcterms:modified">\(modified)</meta>
-        <meta name="cover" content="\(URL(fileURLWithPath: epubInfo.cover ?? "cover.jpg").deletingPathExtension().lastPathComponent)" />
+        <meta name="cover" content="img-\(sanitizeImageName(URL(fileURLWithPath: epubInfo.cover ?? "cover.jpg").deletingPathExtension().lastPathComponent))" />
       </metadata>
       <manifest>
         <item id="toc" href="toc.xhtml" media-type="application/xhtml+xml" properties="nav"/>

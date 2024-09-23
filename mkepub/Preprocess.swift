@@ -271,7 +271,7 @@ func preprocessMarkdown(text: String) -> String {
     }
     
     // Remove extra spaces (commented out, but can be re-enabled if needed)
-//     content = removeExtraSpaces(from: content)
+     content = removeExtraSpaces(from: content)
 
     // Replace breaks
     content = replaceBreaks(in: content)
@@ -301,7 +301,7 @@ func removeExtraSpaces(from text: String) -> String {
                 .filter { !$0.isEmpty }  // Remove extra spaces
                 .joined(separator: " ")  // Join words back with a single space
         }
-        .joined(separator: "\n")  // Join the lines back together with newlines
+        .joined(separator: "\n\n")  // Join the lines back together with newlines
 }
 
 func fixTshirtAnomaly(in text: String) -> String {
@@ -374,10 +374,39 @@ func replaceBreaks(in text: String) -> String {
     return modifiedText
 }
 
+func resetQuotes(in text: String) -> String {
+    // Define a dictionary mapping various types of quotes/apostrophes to ASCII equivalents
+    let quoteMap: [String: String] = [
+        // Single quotes and apostrophes
+        "‘": "'", "’": "'", "‚": "'", "‛": "'",
+        "‹": "'", "›": "'", "`": "'",
+        "´": "'", "ʹ": "'", "ʺ": "'",
+
+        // Double quotes
+        "“": "\"", "”": "\"", "„": "\"", "‟": "\"",
+        "«": "\"", "»": "\"", "〝": "\"", "〞": "\"",
+        "〟": "\"", "＂": "\"", "❝": "\"", "❞": "\"",
+        "❮": "\"", "❯": "\"", "❠": "\"", "❡": "\""
+    ]
+    
+    var result = text
+    
+    // Replace each type of quote or apostrophe with its ASCII equivalent
+    for (quote, ascii) in quoteMap {
+        result = result.replacingOccurrences(of: quote, with: ascii)
+    }
+    
+    return result
+}
+
 func replaceQuotes(in text: String) -> String {
+    let text = resetQuotes(in: text)
+    
     var output = ""
-    var insideQuote = false
+    var insideDoubleQuote = false
+    var insideSingleQuote = false
     var insideHtmlTag = false
+    var previousChar: Character? = nil
 
     for ch in text {
         if ch == "<" {
@@ -388,25 +417,39 @@ func replaceQuotes(in text: String) -> String {
 
         if insideHtmlTag {
             output.append(ch)
+            previousChar = ch
             continue
         }
 
         switch ch {
-        // Handle single quotes, simplified to always replace with a curly quote
+        // Handle single quotes or apostrophes
         case "'":
-            output.append("’")
+            // Check if it's part of a contraction or possessive
+            if let prev = previousChar, prev.isLetter {
+                output.append("’")  // Closing curly quote for contractions/names like D'Artagnan
+            } else {
+                insideSingleQuote.toggle()
+                output.append(insideSingleQuote ? "‘" : "’")  // Toggle for standalone single quotes
+            }
         // Handle double quotes, toggle between opening and closing quotes
-        case "\"", "“", "”":
-            insideQuote.toggle()
-            output.append(insideQuote ? "“" : "”")
+        case "\"":
+            insideDoubleQuote.toggle()
+            output.append(insideDoubleQuote ? "“" : "”")
+        // Handle paragraph terminators (new lines)
+        case "\n":
+            output.append(ch)
+            // Reset flags at the end of a paragraph
+            insideSingleQuote = false
+            insideDoubleQuote = false
         default:
             output.append(ch)
         }
+
+        previousChar = ch  // Track the previous character
     }
 
     return output
 }
-
 
 func fixPunctuation(in text: String) -> String {
     var output = ""

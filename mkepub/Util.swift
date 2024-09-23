@@ -15,6 +15,24 @@ func createFile(at filePath: URL, withContent fileContent: String) {
     }
 }
 
+func sanitizeImageName(_ input: String) -> String {
+    // Separate file name and extension
+    let fileExtension = (input as NSString).pathExtension.lowercased()
+    var fileName = (input as NSString).deletingPathExtension.lowercased()
+    
+    // Replace non-alphanumeric characters in the file name with '-'
+    fileName = fileName.map { $0.isLetter || $0.isNumber ? String($0) : "-" }.joined()
+    
+    // Replace multiple hyphens with a single hyphen using regex
+    fileName = fileName.replacingOccurrences(of: "-+", with: "-", options: .regularExpression)
+    
+    // Remove leading and trailing hyphens
+    fileName = fileName.trimmingCharacters(in: CharacterSet(charactersIn: "-"))
+    
+    // Append the extension back to the sanitized file name
+    return fileExtension.isEmpty ? fileName : "\(fileName).\(fileExtension)"
+}
+
 func sanitizeName(_ input: String) -> String {
     var output = input.lowercased()
     

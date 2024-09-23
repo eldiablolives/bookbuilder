@@ -112,11 +112,6 @@ func copyResources(epubInfo: EpubInfo, destURL: URL) {
         }
     }
 
-//    // Copy the cover image (if exists, using its absolute path)
-//    if let coverImage = epubInfo.cover {
-//        copyFileToDir(from: coverImage, to: destURL.appendingPathComponent("OPS/images"))
-//    }
-
     // Copy the style file (if exists, using its absolute path)
     if let styleFile = epubInfo.style {
         copyFileToDir(from: styleFile, to: destURL.appendingPathComponent("OPS/css"))
@@ -132,14 +127,27 @@ func copyResources(epubInfo: EpubInfo, destURL: URL) {
     // Copy images (using their absolute paths)
     if let images = epubInfo.images {
         for image in images {
-            copyFileToDir(from: image, to: destURL.appendingPathComponent("OPS/images"))
+            let imageURL = URL(fileURLWithPath: image) // Convert the string to URL
+            let sanitizedFileName = sanitizeImageName(imageURL.lastPathComponent) // Sanitize just the file name
+            
+            // Construct the destination file URL by appending the sanitized file name to the target directory
+            let destinationURL = destURL
+                .appendingPathComponent("OPS/images") // Target directory
+                .appendingPathComponent(sanitizedFileName) // Sanitized file name (no need to append further)
+            
+            // Copy the original file to the sanitized destination
+            do {
+                if FileManager.default.fileExists(atPath: imageURL.path) {
+                    try FileManager.default.copyItem(at: imageURL, to: destinationURL)
+                    logger.log("Copied file \(imageURL.lastPathComponent) to \(destinationURL.path)")
+                } else {
+                    logger.log("File \(imageURL.path) does not exist.")
+                }
+            } catch {
+                logger.log("Error copying file \(imageURL.path) to \(destinationURL.path): \(error)")
+            }
         }
     }
-
-//    // Copy documents (using their absolute paths)
-//    for document in epubInfo.documents {
-//        copyFileToDir(from: document, to: destURL.appendingPathComponent("OPS/documents"))
-//    }
 }
 
 func renderMarkdownToPage(source: URL) -> Page {
@@ -155,10 +163,10 @@ func renderMarkdownToPage(source: URL) -> Page {
     // Check if the source URL is an image
     if isImageFile(source) {
         // Return the <img> tag with the full file name including the extension
-        let imageTag = "<img src=\"../images/\(fileNameWithExtension)\" class=\"cover\"/>"
+        let imageTag = "<img src=\"../images/\(sanitizeImageName(fileNameWithExtension))\" class=\"cover\"/>"
         
         // Create a new Page instance with the image tag as the body
-        return Page(name: fileNameWithExtension, file: sanitizeName(fileNameWithExtension), title: "", body: imageTag)
+        return Page(name: sanitizeImageName(fileNameWithExtension), file: sanitizeImageName(fileNameWithExtension), title: "", body: imageTag)
     }
 
     // If it's not an image, proceed to read the file and process the markdown
