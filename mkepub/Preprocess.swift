@@ -222,6 +222,51 @@ func preprocessePubCommand(_ command: String, _ params: String? = nil) -> String
         }
     }
     
+    // Handle the "dropcap" command
+    else if command == "dropcap" {
+        if let params = params {
+            result = """
+            <p class="dropcap">
+            \(params)
+            </p>
+            """
+        } else {
+            result = """
+            <p class="dropcap">
+            Dropcap Text
+            </p>
+            """
+        }
+    }
+    
+    // Handle the "style" command
+    else if command == "style" {
+        if let params = params {
+            // Split the input at the "|" character
+            let parts = params.split(separator: "|", maxSplits: 1).map { String($0).trimmingCharacters(in: .whitespaces) }
+            let classNames = parts[0] // Class names before the "|"
+
+            // Check if the styled text (after "|") is provided
+            if parts.count > 1 {
+                let styledText = parts[1] // Text to be styled
+                result = """
+                <div class="\(classNames)">
+                \(styledText)
+                </div>
+                """
+            } else {
+                // If no text is provided, just use the class names and add a placeholder text
+                result = """
+                <div class="\(classNames)">
+                Styled Text
+                </div>
+                """
+            }
+        } else {
+            result = "{{style}}" // In case no params are provided
+        }
+    }
+    
     // If the command is not recognized, reconstruct the original {{command params}}
     else {
         if let params = params {
