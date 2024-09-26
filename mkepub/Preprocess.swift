@@ -25,12 +25,12 @@ func preprocessePubCommand(_ command: String, _ params: String? = nil) -> String
                 <div class="chapter-heading">
                 \(chapterHeading)
                 </div>
-                # \(chapterTitle)
+                # \(titleCase(chapterTitle))
                 """
             } else {
                 // If no title is provided, just use the chapter heading and add it to the TOC
                 result = """
-                # \(chapterHeading)
+                # \(titleCase(chapterHeading))
                 """
             }
         } else {
@@ -315,8 +315,11 @@ func preprocessMarkdown(text: String) -> String {
         }
     }
     
+    // Handle title casing for markdown headings that start with "#"
+    content = applyTitleCaseToMarkdownHeaders(in: content)
+    
     // Remove extra spaces (commented out, but can be re-enabled if needed)
-     content = removeExtraSpaces(from: content)
+    content = removeExtraSpaces(from: content)
 
     // Replace breaks
     content = replaceBreaks(in: content)
@@ -324,9 +327,42 @@ func preprocessMarkdown(text: String) -> String {
     // Fix anomalies
     content = fixEmAnomaly(in: content)
     content = fixTshirtAnomaly(in: content)
-
     
+    // CMOS rules
+//    content = replaceEllipses(input: content)
+//    content = replaceHypenationInNumberRanges(input: content)
+//    content = replaceAfterColonCapitalisation(input: content)
+
     return content
+}
+
+// Function to handle title casing for markdown headers
+func applyTitleCaseToMarkdownHeaders(in text: String) -> String {
+    // Pattern to match lines starting with exactly one '#' followed by a space and some text
+    let pattern = #"(?m)^# ([^\n]+)"#
+    
+    if let regex = try? NSRegularExpression(pattern: pattern) {
+        let matches = regex.matches(in: text, range: NSRange(text.startIndex..., in: text))
+        
+        var newText = text
+        
+        // Process each match
+        for match in matches.reversed() {
+            if let range = Range(match.range(at: 1), in: newText) {
+                let headerText = String(newText[range])
+                
+                // Convert to title case
+                let titleCasedText = titleCase(headerText)
+                
+                // Replace the original text with the title-cased version
+                newText.replaceSubrange(range, with: titleCasedText)
+            }
+        }
+        
+        return newText
+    }
+    
+    return text
 }
 
 func isPunctuation(_ ch: Character) -> Bool {
@@ -347,6 +383,83 @@ func removeExtraSpaces(from text: String) -> String {
                 .joined(separator: " ")  // Join words back with a single space
         }
         .joined(separator: "\n\n")  // Join the lines back together with newlines
+}
+
+// Function to apply CMOS Rule 13.50 - Replace ellipses with properly spaced ellipses
+func replaceEllipses(input: String) -> String {
+    // Regex pattern to match ellipses that are improperly formatted (three dots in a row or single ellipsis character)
+    let pattern = #"\.{3}|…"#
+    
+    // Define the replacement for properly spaced ellipses
+    let replacement = ". . ."
+    
+    // Use regular expressions to replace all occurrences of three dots or ellipsis character with properly spaced ellipses
+    if let regex = try? NSRegularExpression(pattern: pattern) {
+        let range = NSRange(input.startIndex..<input.endIndex, in: input)
+        let result = regex.stringByReplacingMatches(in: input, options: [], range: range, withTemplate: replacement)
+        return result
+    }
+    
+    // Return the original input if regex fails
+    return input
+}
+
+// Function to apply CMOS Rule 6.78 - Replace hyphens with en dashes for ranges
+func replaceHypenationInNumberRanges(input: String) -> String {
+    // Regex pattern to match number ranges and word ranges with single hyphens between them
+    // Matches formats like "2010-2020" or "New York-London"
+    let pattern = #"(?<=\d)-(?=\d)|(?<=\w)-(?=\w)"#
+    
+    // The en dash character
+    let enDash = "–"
+    
+    // Use regular expressions to replace hyphens with en dashes in ranges
+    if let regex = try? NSRegularExpression(pattern: pattern) {
+        let range = NSRange(input.startIndex..<input.endIndex, in: input)
+        let result = regex.stringByReplacingMatches(in: input, options: [], range: range, withTemplate: enDash)
+        return result
+    }
+    
+    // Return the original input if regex fails
+    return input
+}
+
+// Function to apply CMOS Rule 6.63 - Capitalize or lowercase the first word after a colon based on sentence completeness
+func replaceAfterColonCapitalisation(input: String) -> String {
+    // Regex pattern to match any colon followed by a word
+    let pattern = #":\s*([a-zA-Z])"#
+    
+    // Use regular expressions to find colons followed by a word
+    if let regex = try? NSRegularExpression(pattern: pattern) {
+        let range = NSRange(input.startIndex..<input.endIndex, in: input)
+        var result = input
+        
+        // Process matches from the regex
+        regex.enumerateMatches(in: input, options: [], range: range) { match, _, _ in
+            if let matchRange = match?.range(at: 1), let rangeInString = Range(matchRange, in: input) {
+                // Get the character after the colon
+                let firstLetter = input[rangeInString]
+                
+                // Find the text after the colon
+                let afterColonStartIndex = input.index(after: rangeInString.upperBound)
+                let textAfterColon = input[afterColonStartIndex...].trimmingCharacters(in: .whitespacesAndNewlines)
+                
+                // Check if the text after the colon is a complete sentence (using common punctuation marks)
+                if textAfterColon.first == "." || textAfterColon.first == "!" || textAfterColon.first == "?" || textAfterColon.contains(".") {
+                    // If it's a complete sentence, capitalize the first letter
+                    result.replaceSubrange(rangeInString, with: firstLetter.uppercased())
+                } else {
+                    // If it's a fragment, lowercase the first letter (just in case)
+                    result.replaceSubrange(rangeInString, with: firstLetter.lowercased())
+                }
+            }
+        }
+        
+        return result
+    }
+    
+    // Return the original input if regex fails
+    return input
 }
 
 func fixTshirtAnomaly(in text: String) -> String {

@@ -187,7 +187,7 @@ func renderMarkdownToPage(source: URL) -> Page {
     let htmlContent = parser.html(from: markdownContent)
 
     // Extract the title from the Markdown content
-    let title = extractTitle(from: markdownContent)
+    let title = titleCase(extractTitle(from: markdownContent))
 
     // Sanitize the file name (without extension, if necessary)
     let file = sanitizeName(source.deletingPathExtension().lastPathComponent)

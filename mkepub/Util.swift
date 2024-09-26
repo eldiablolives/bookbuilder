@@ -66,3 +66,24 @@ func extractTitle(from markdownContent: String) -> String {
 func getFileName(from source: URL) -> String {
     return source.deletingPathExtension().lastPathComponent
 }
+
+func titleCase(_ input: String) -> String {
+    // Define the list of words that should remain lowercase unless they are the first or last word
+    let lowercaseWords: Set = ["a", "an", "and", "as", "at", "but", "by", "for", "if", "in", "nor", "of", "on", "or", "so", "the", "to", "up", "yet"]
+    
+    // Split the string into words
+    let words = input.lowercased().split(separator: " ")
+    
+    // Map over each word to apply title case rules
+    let titleCasedWords = words.enumerated().map { index, word -> String in
+        // Capitalize the first and last words or words not in the lowercase list
+        if index == 0 || index == words.count - 1 || !lowercaseWords.contains(String(word)) {
+            return word.prefix(1).uppercased() + word.dropFirst()
+        } else {
+            return String(word)  // Leave it lowercase
+        }
+    }
+    
+    // Join the words back into a single string with spaces in between
+    return titleCasedWords.joined(separator: " ")
+}
