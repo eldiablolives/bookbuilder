@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "msXTSSPbwho=",
+  "dgSpecHash": "FFKqGZ8/ot4=",
   "success": true,
-  "projectFilePath": "/Users/mrstiltskin/Work/FolderPickerApp/FolderPickerApp.csproj",
+  "projectFilePath": "/Users/mrstiltskin/Documents/Code/bookbuilder/FolderPickerApp.csproj",
   "expectedPackageFiles": [
     "/Users/mrstiltskin/.nuget/packages/googlegson/2.10.1.4/googlegson.2.10.1.4.nupkg.sha512",
     "/Users/mrstiltskin/.nuget/packages/microsoft.extensions.configuration/8.0.0/microsoft.extensions.configuration.8.0.0.nupkg.sha512",

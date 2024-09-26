@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "/Users/mrstiltskin/Work/FolderPickerApp/FolderPickerApp.csproj": {}
+    "/Users/mrstiltskin/Documents/Code/bookbuilder/FolderPickerApp.csproj": {}
   },
   "projects": {
-    "/Users/mrstiltskin/Work/FolderPickerApp/FolderPickerApp.csproj": {
+    "/Users/mrstiltskin/Documents/Code/bookbuilder/FolderPickerApp.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/Users/mrstiltskin/Work/FolderPickerApp/FolderPickerApp.csproj",
+        "projectUniqueName": "/Users/mrstiltskin/Documents/Code/bookbuilder/FolderPickerApp.csproj",
         "projectName": "FolderPickerApp",
-        "projectPath": "/Users/mrstiltskin/Work/FolderPickerApp/FolderPickerApp.csproj",
+        "projectPath": "/Users/mrstiltskin/Documents/Code/bookbuilder/FolderPickerApp.csproj",
         "packagesPath": "/Users/mrstiltskin/.nuget/packages/",
-        "outputPath": "/Users/mrstiltskin/Work/FolderPickerApp/obj/",
+        "outputPath": "/Users/mrstiltskin/Documents/Code/bookbuilder/obj/",
         "projectStyle": "PackageReference",
         "crossTargeting": true,
         "configFilePaths": [
