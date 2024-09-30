@@ -365,6 +365,11 @@ func applyTitleCaseToMarkdownHeaders(in text: String) -> String {
     return text
 }
 
+//TODO! IMPORTANT
+func replaceDoublePunctuation(){
+    //TODO: replaces ?!, or ,, or ,. things like that except ... (which is elipses/single) which should call additional function replaceElipses (... to …) : need to chek that, maybe CMOS elipses.
+}
+
 func isPunctuation(_ ch: Character) -> Bool {
     switch ch {
     case ",", ".", "?", "!", ";", ":", "…":
