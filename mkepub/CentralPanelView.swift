@@ -12,23 +12,31 @@ struct CentralPanelView: View {
                 .padding(.top, 10)
                 .padding(.bottom, 10)
                 .padding(.horizontal)
+
             // Top fields
             HStack(alignment: .top) {
                 VStack(alignment: .leading) {
-                    TextField("Book Title", text: $fileHelper.bookTitle)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .padding(.top, 8)
+                    // --- Bind directly to config ---
+                    TextField("Book Title", text: Binding(
+                        get: { settingsStore.settings.title ?? "" },
+                        set: { settingsStore.settings.title = $0 }
+                    ))
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .padding(.top, 8)
 
-                    TextField("Author", text: $fileHelper.author)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .padding(.top, 8)
+                    TextField("Author", text: Binding(
+                        get: { settingsStore.settings.author ?? "" },
+                        set: { settingsStore.settings.author = $0 }
+                    ))
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .padding(.top, 8)
                 }
                 .padding()
                 .border(Color.gray.opacity(0.5), width: 1)
             }
             .padding(.bottom, 16)
 
-            // Selected Files at the bottom
+            // Selected Files at the bottom (still uses fileHelper)
             VStack {
                 Text("[\(fileHelper.selectedFiles.count)] Selected files, (\(settingsStore.settings.words ?? 0) words)")
                     .font(.headline)

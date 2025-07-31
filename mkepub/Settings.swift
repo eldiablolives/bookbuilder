@@ -1,7 +1,12 @@
 import Foundation
+import AppKit
 
 struct Settings: Codable, Equatable {
-    // Print settings (optional)
+    // book properties
+    var title: String?
+    var author: String?
+    
+    // print properties
     var printTarget: String?
     var printTrimSize: String?
     var printFont: String?
@@ -16,34 +21,51 @@ struct Settings: Codable, Equatable {
     var bleedHeight: String?
     var bleedMargin: String?
     var words: Int?
-
-    // eBook settings (example)
     var ebookCoverImage: String?
     var ebookStyle: String?
-    // Add more as needed!
-
-    // Other app-wide or project-wide settings...
+  
 }
 
 class SettingsStore: ObservableObject {
     @Published var settings: Settings = Settings()
     
-    // MARK: - Persistence
-
-    private static var settingsURL: URL {
-        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("mkepub-settings.json")
+    private(set) var currentFolder: URL?      // The folder we're working in
+    
+    // Computed property for the current settings file path
+    private var settingsURL: URL? {
+        currentFolder?.appendingPathComponent(".publish.json")
     }
     
+    // Load settings from a specific folder
+    func load(from folder: URL) {
+        self.currentFolder = folder     // <-- Always set currentFolder
+        let fileURL = folder.appendingPathComponent(".publish.json")
+        if let data = try? Data(contentsOf: fileURL),
+           let loaded = try? JSONDecoder().decode(Settings.self, from: data) {
+            self.settings = loaded
+        } else {
+            self.settings = Settings()
+        }
+    }
+    
+    // Save settings to last loaded folder, if any
     func save() throws {
+        guard let url = settingsURL else {
+//            let alert = NSAlert()
+//            alert.messageText = "Settings Saved"
+//            alert.informativeText = "Settings NOT SAVED"
+//            alert.addButton(withTitle: "OK")
+//            alert.runModal()
+            
+            return }
         let data = try JSONEncoder().encode(settings)
-        try data.write(to: Self.settingsURL)
-    }
-    
-    func load() {
-        guard let data = try? Data(contentsOf: Self.settingsURL),
-              let loaded = try? JSONDecoder().decode(Settings.self, from: data)
-        else { return }
-        settings = loaded
+        try data.write(to: url)
+        
+        // Show a popup alert to confirm save is called
+//        let alert = NSAlert()
+//        alert.messageText = "Settings Saved"
+//        alert.informativeText = "Settings were saved to \(url.path)"
+//        alert.addButton(withTitle: "OK")
+//        alert.runModal()
     }
 }

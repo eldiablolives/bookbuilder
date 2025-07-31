@@ -76,6 +76,10 @@ class FileHelper: ObservableObject {
             checkedFiles = Array(repeating: false, count: files.count)
             selectedFiles = []
             settingsStore?.settings.words = 0 // reset total words
+
+            // ---- Load the settings for this folder!
+            settingsStore?.load(from: url)
+
         } catch {
             print("Error reading folder contents: \(error)")
             filesInFolder = []
