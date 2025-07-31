@@ -5,6 +5,13 @@ struct Settings: Codable, Equatable {
     // book properties
     var title: String?
     var author: String?
+    var images: [String]?
+    
+    // epub
+    var cover: String?
+    var style: String?
+    var fonts: [String]?
+    var start: String? // start page
     
     // print properties
     var printTarget: String?
@@ -23,6 +30,19 @@ struct Settings: Codable, Equatable {
     var words: Int?
     var ebookCoverImage: String?
     var ebookStyle: String?
+    
+    // New (LaTeX-ish) fields
+    var letterSpacing: String?       // e.g. "0.02em" or nil
+    var wordSpacing: String?         // e.g. "0.1em"
+    var paragraphIndent: String?     // e.g. "1.2em"
+    var paragraphSkip: String?       // e.g. "0.5em"
+    var justifyText: Bool?           // true/false
+    var hyphenate: Bool?             // true/false
+    var headerContent: String?       // e.g. "Book Title"
+    var footerContent: String?       // e.g. "Page \thepage"
+    var pageNumberStyle: String?     // "arabic", "roman", "none"
+    var sectionSpacing: String?      // e.g. "2em"
+    var printParagraphBreakSeparator: String? // e.g. * * *
   
 }
 
