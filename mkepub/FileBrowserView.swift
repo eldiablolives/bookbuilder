@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct LeftPanelView: View {
+struct FileBrowserView: View {
     @ObservedObject var fileHelper: FileHelper
     @Binding var dividerPosition: CGFloat
     @Binding var isHoveringOverDivider: Bool

@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct RightPanelView: View {
+struct PreviewPanelView: View {
     @Binding var rightPanelTab: String
     @Binding var sourceText: String
     @Binding var htmlContent: String
@@ -27,8 +27,8 @@ struct RightPanelView: View {
                 .background(Color.white)
                 .border(Color.gray.opacity(0.5), width: 1)
             } else if rightPanelTab == "Preview" {
-                WebView(htmlContent: htmlContent)
-                    .border(Color.gray.opacity(0.5), width: 1)
+//                WebView(htmlContent: htmlContent)
+//                    .border(Color.gray.opacity(0.5), width: 1)
             }
         }
     }
