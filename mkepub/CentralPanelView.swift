@@ -6,6 +6,11 @@ struct CentralPanelView: View {
 
     var body: some View {
         VStack {
+            Text("Processor")
+                .font(.headline)
+                .padding(.top, 10)
+                .padding(.bottom, 10)
+                .padding(.horizontal)
             // Top fields
             HStack(alignment: .top) {
                 VStack(alignment: .leading) {

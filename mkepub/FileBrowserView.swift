@@ -9,13 +9,24 @@ struct FileBrowserView: View {
 
     var geometry: GeometryProxy
 
+    // Computed property for indices of displayable files
+    private var displayableFileIndices: [Int] {
+        fileHelper.filesInFolder.indices.filter { idx in
+            let fileURL = fileHelper.filesInFolder[idx]
+            let fileExtension = fileURL.pathExtension.lowercased()
+            return ["md", "txt", "jpg", "png"].contains(fileExtension)
+        }
+    }
+
+    // The "select all" binding applies only to displayable files
     private var isAllSelected: Binding<Bool> {
         Binding<Bool>(
             get: {
-                !fileHelper.checkedFiles.isEmpty && fileHelper.checkedFiles.allSatisfy { $0 }
+                !displayableFileIndices.isEmpty &&
+                displayableFileIndices.allSatisfy { fileHelper.checkedFiles[$0] }
             },
             set: { newValue in
-                for idx in fileHelper.checkedFiles.indices {
+                for idx in displayableFileIndices {
                     fileHelper.checkedFiles[idx] = newValue
                     let file = fileHelper.filesInFolder[idx]
                     fileHelper.updateSelectedFiles(for: file, isChecked: newValue)
@@ -26,7 +37,7 @@ struct FileBrowserView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("All Files")
+            Text("Source files")
                 .font(.headline)
                 .padding(.top, 10)
                 .padding(.bottom, 10)

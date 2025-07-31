@@ -12,6 +12,11 @@
 		120786642C9F052E0088573B /* PreviewPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 120786632C9F052E0088573B /* PreviewPanelView.swift */; };
 		1230493C2E3B279A000C8A7C /* CentralPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1230493B2E3B2792000C8A7C /* CentralPanelView.swift */; };
 		1230493E2E3B2A06000C8A7C /* BookBuildView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1230493D2E3B29FE000C8A7C /* BookBuildView.swift */; };
+		123049402E3B5AF6000C8A7C /* EbookTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1230493F2E3B5AF2000C8A7C /* EbookTabView.swift */; };
+		123049422E3B5C58000C8A7C /* HTMLTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 123049412E3B5C51000C8A7C /* HTMLTabView.swift */; };
+		123049442E3B5C8A000C8A7C /* PDFTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 123049432E3B5C83000C8A7C /* PDFTabView.swift */; };
+		123049462E3B5CA2000C8A7C /* PrintTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 123049452E3B5C9D000C8A7C /* PrintTabView.swift */; };
+		123049482E3B6322000C8A7C /* Settings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 123049472E3B6311000C8A7C /* Settings.swift */; };
 		127213662C9811BD00497EDD /* MakeBook.swift in Sources */ = {isa = PBXBuildFile; fileRef = 127213652C9811BD00497EDD /* MakeBook.swift */; };
 		127213682C9825F400497EDD /* Preprocess.swift in Sources */ = {isa = PBXBuildFile; fileRef = 127213672C9825F400497EDD /* Preprocess.swift */; };
 		1272136A2C9827CD00497EDD /* Compress.swift in Sources */ = {isa = PBXBuildFile; fileRef = 127213692C9827CD00497EDD /* Compress.swift */; };
@@ -34,6 +39,11 @@
 		120786632C9F052E0088573B /* PreviewPanelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewPanelView.swift; sourceTree = "<group>"; };
 		1230493B2E3B2792000C8A7C /* CentralPanelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CentralPanelView.swift; sourceTree = "<group>"; };
 		1230493D2E3B29FE000C8A7C /* BookBuildView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookBuildView.swift; sourceTree = "<group>"; };
+		1230493F2E3B5AF2000C8A7C /* EbookTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EbookTabView.swift; sourceTree = "<group>"; };
+		123049412E3B5C51000C8A7C /* HTMLTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTMLTabView.swift; sourceTree = "<group>"; };
+		123049432E3B5C83000C8A7C /* PDFTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFTabView.swift; sourceTree = "<group>"; };
+		123049452E3B5C9D000C8A7C /* PrintTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrintTabView.swift; sourceTree = "<group>"; };
+		123049472E3B6311000C8A7C /* Settings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Settings.swift; sourceTree = "<group>"; };
 		127213652C9811BD00497EDD /* MakeBook.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MakeBook.swift; sourceTree = "<group>"; };
 		127213672C9825F400497EDD /* Preprocess.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Preprocess.swift; sourceTree = "<group>"; };
 		127213692C9827CD00497EDD /* Compress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Compress.swift; sourceTree = "<group>"; };
@@ -82,6 +92,11 @@
 		12A503742C97EC8E00F0008E /* mkepub */ = {
 			isa = PBXGroup;
 			children = (
+				123049472E3B6311000C8A7C /* Settings.swift */,
+				123049452E3B5C9D000C8A7C /* PrintTabView.swift */,
+				123049432E3B5C83000C8A7C /* PDFTabView.swift */,
+				123049412E3B5C51000C8A7C /* HTMLTabView.swift */,
+				1230493F2E3B5AF2000C8A7C /* EbookTabView.swift */,
 				1230493D2E3B29FE000C8A7C /* BookBuildView.swift */,
 				1230493B2E3B2792000C8A7C /* CentralPanelView.swift */,
 				12A503752C97EC8E00F0008E /* mkepubApp.swift */,
@@ -190,20 +205,25 @@
 			buildActionMask = 2147483647;
 			files = (
 				12A503782C97EC8E00F0008E /* ContentView.swift in Sources */,
+				123049442E3B5C8A000C8A7C /* PDFTabView.swift in Sources */,
 				1272136F2C982ADE00497EDD /* Util.swift in Sources */,
 				1230493E2E3B2A06000C8A7C /* BookBuildView.swift in Sources */,
 				127213662C9811BD00497EDD /* MakeBook.swift in Sources */,
 				127213732C98344B00497EDD /* Types.swift in Sources */,
 				120786622C9EFFA50088573B /* FileBrowserView.swift in Sources */,
 				12A503762C97EC8E00F0008E /* mkepubApp.swift in Sources */,
+				123049462E3B5CA2000C8A7C /* PrintTabView.swift in Sources */,
 				127213682C9825F400497EDD /* Preprocess.swift in Sources */,
 				127213712C982B9700497EDD /* Epub.swift in Sources */,
 				127213782C98461000497EDD /* LogView.swift in Sources */,
 				1272137C2C9ABA5900497EDD /* TeXBook.swift in Sources */,
 				120786602C9ED6D70088573B /* ContentViewHelpers.swift in Sources */,
+				123049482E3B6322000C8A7C /* Settings.swift in Sources */,
 				1230493C2E3B279A000C8A7C /* CentralPanelView.swift in Sources */,
 				120786642C9F052E0088573B /* PreviewPanelView.swift in Sources */,
 				1272136A2C9827CD00497EDD /* Compress.swift in Sources */,
+				123049422E3B5C58000C8A7C /* HTMLTabView.swift in Sources */,
+				123049402E3B5AF6000C8A7C /* EbookTabView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
