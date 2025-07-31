@@ -1,5 +1,19 @@
 import SwiftUI
 
+struct KDPTrimSpec {
+    let trim: String
+    let marginTop: String
+    let marginBottom: String
+    let marginInner: String
+    let marginOuter: String
+    let gutter: String
+    let bleedWidth: String
+    let bleedHeight: String
+    let bleedMargin: String
+    let minPages: Int
+    let maxPages: Int
+}
+
 struct PrintTabView: View {
     @ObservedObject var fileHelper: FileHelper
     @EnvironmentObject var settingsStore: SettingsStore
@@ -30,11 +44,63 @@ struct PrintTabView: View {
         ]
     ]
 
+    let kdpSpecs: [KDPTrimSpec] = [
+        // ... your KDPTrimSpec array unchanged ...
+        KDPTrimSpec(trim: "5 x 8", marginTop: "0.75", marginBottom: "0.75", marginInner: "0.75", marginOuter: "0.5", gutter: "0.375", bleedWidth: "5.25", bleedHeight: "8.25", bleedMargin: "0.125", minPages: 24, maxPages: 828),
+        // ... (rest unchanged) ...
+        KDPTrimSpec(trim: "8.5 x 11", marginTop: "0.75", marginBottom: "0.75", marginInner: "0.75", marginOuter: "0.5", gutter: "0.375", bleedWidth: "8.75", bleedHeight: "11.25", bleedMargin: "0.125", minPages: 24, maxPages: 828)
+    ]
+    
+    // --- Normalizer and autofill ---
+    func normalizeTrim(_ s: String) -> String {
+        // Converts: 5" x 8" -> 5 x 8
+        s.replacingOccurrences(of: "\"", with: "").trimmingCharacters(in: .whitespaces)
+    }
+    func kdpSpecFor(trim: String, pages: Int) -> KDPTrimSpec? {
+        let normalized = normalizeTrim(trim)
+        return kdpSpecs.first { $0.trim == normalized && pages >= $0.minPages && pages <= $0.maxPages }
+    }
+    func autofillKDPFieldsIfNeeded() {
+        guard settingsStore.settings.printTarget == "Amazon KDP" else { return }
+        guard let trim = settingsStore.settings.printTrimSize,
+              let words = settingsStore.settings.words,
+              let fontSize = Double(settingsStore.settings.fontSize ?? "11"),
+              let lineSpacing = Double(settingsStore.settings.lineSpacing ?? "1.2")
+        else { return }
+        // Match estimation to UI calculation
+        let baseWords: Int = {
+            if trim.contains("8.5") && trim.contains("11") { return 600 }
+            if trim.contains("8.25") && trim.contains("11") { return 590 }
+            if trim.contains("8.25") && trim.contains("10.75") { return 570 }
+            if trim.contains("8.5") && trim.contains("8.5") { return 460 }
+            if trim.contains("7") && trim.contains("10") { return 400 }
+            if trim.contains("6.69") && trim.contains("9.61") { return 390 }
+            if trim.contains("6") && trim.contains("9") { return 370 }
+            if trim.contains("5.5") && trim.contains("8.5") { return 320 }
+            if trim.contains("5") && trim.contains("8") { return 300 }
+            return 370
+        }()
+        let fontSizeMod = 11.0 / fontSize
+        let lineSpacingMod = 1.2 / lineSpacing
+        let wordsPerPage = max(100, Int(Double(baseWords) * fontSizeMod * lineSpacingMod))
+        let pages = max(1, Int(round(Double(words) / Double(wordsPerPage))))
+        if let spec = kdpSpecFor(trim: trim, pages: pages) {
+            settingsStore.settings.marginTop = spec.marginTop
+            settingsStore.settings.marginBottom = spec.marginBottom
+            settingsStore.settings.marginInner = spec.marginInner
+            settingsStore.settings.marginOuter = spec.marginOuter
+            settingsStore.settings.gutter = spec.gutter
+            settingsStore.settings.bleedWidth = spec.bleedWidth
+            settingsStore.settings.bleedHeight = spec.bleedHeight
+            settingsStore.settings.bleedMargin = spec.bleedMargin
+        }
+    }
+
     var currentTrimSizes: [String] {
         trimSizes[settingsStore.settings.printTarget ?? "Amazon KDP"] ?? ["Custom size..."]
     }
 
-    // Bindings for all fields
+    // Bindings for all fields (unchanged)
     private var selectedTarget: Binding<String> {
         Binding(
             get: { settingsStore.settings.printTarget ?? "Amazon KDP" },
@@ -137,6 +203,9 @@ struct PrintTabView: View {
                 .padding(.bottom, 4)
                 .onChange(of: settingsStore.settings.printTarget) { _ in
                     selectedTrimSize.wrappedValue = currentTrimSizes.first ?? ""
+                    if settingsStore.settings.printTarget == "Amazon KDP" {
+                        autofillKDPFieldsIfNeeded()
+                    }
                 }
 
                 HStack {
@@ -152,6 +221,11 @@ struct PrintTabView: View {
                 }
                 .padding(.horizontal)
                 .padding(.bottom, 4)
+                .onChange(of: settingsStore.settings.printTrimSize) { _ in
+                    if settingsStore.settings.printTarget == "Amazon KDP" {
+                        autofillKDPFieldsIfNeeded()
+                    }
+                }
 
                 HStack {
                     Text("Font:")
@@ -166,8 +240,12 @@ struct PrintTabView: View {
                 }
                 .padding(.horizontal)
                 .padding(.bottom, 4)
-                
-                
+                .onChange(of: settingsStore.settings.fontSize) { _ in
+                    if settingsStore.settings.printTarget == "Amazon KDP" {
+                        autofillKDPFieldsIfNeeded()
+                    }
+                }
+
                 HStack {
                     Text("Font size:")
                         .font(.body)
@@ -181,7 +259,16 @@ struct PrintTabView: View {
                 }
                 .padding(.horizontal)
                 .padding(.bottom, 4)
-
+                .onChange(of: settingsStore.settings.fontSize) { _ in
+                    if settingsStore.settings.printTarget == "Amazon KDP" {
+                        autofillKDPFieldsIfNeeded()
+                    }
+                }
+                .onChange(of: settingsStore.settings.lineSpacing) { _ in
+                    if settingsStore.settings.printTarget == "Amazon KDP" {
+                        autofillKDPFieldsIfNeeded()
+                    }
+                }
 
                 // Margins section
                 GroupBox(label: Text("Margins").font(.headline)) {
@@ -240,13 +327,45 @@ struct PrintTabView: View {
                 .padding(.horizontal)
                 .padding(.bottom, 8)
 
+                // --- Calculation helpers ---
+                let trim = (settingsStore.settings.printTrimSize ?? "6\" x 9\"")
+                let fontSizeValue = Double(settingsStore.settings.fontSize ?? "11") ?? 11
+                let lineSpacingValue = Double(settingsStore.settings.lineSpacing ?? "1.2") ?? 1.2
+
+                let baseWords: Int = {
+                    if trim.contains("8.5") && trim.contains("11") { return 600 }
+                    if trim.contains("8.25") && trim.contains("11") { return 590 }
+                    if trim.contains("8.25") && trim.contains("10.75") { return 570 }
+                    if trim.contains("8.5") && trim.contains("8.5") { return 460 }
+                    if trim.contains("7") && trim.contains("10") { return 400 }
+                    if trim.contains("6.69") && trim.contains("9.61") { return 390 }
+                    if trim.contains("6") && trim.contains("9") { return 370 }
+                    if trim.contains("5.5") && trim.contains("8.5") { return 320 }
+                    if trim.contains("5") && trim.contains("8") { return 300 }
+                    return 370
+                }()
+                let fontSizeMod = 11.0 / fontSizeValue
+                let lineSpacingMod = 1.2 / lineSpacingValue
+                let estimatedWordsPerPage = max(100, Int(Double(baseWords) * fontSizeMod * lineSpacingMod))
+                let totalWords = settingsStore.settings.words ?? 0
+                let estimatedPages = max(1, (totalWords + estimatedWordsPerPage - 1) / estimatedWordsPerPage)
+
+                // --- UI ---
+                HStack {
+                    Text("Words per page: \(estimatedWordsPerPage)")
+                        .font(.subheadline)
+                    Spacer()
+                    Text("Est. pages: \(estimatedPages)")
+                        .font(.subheadline)
+                }
+                .padding(.horizontal)
+                .padding(.bottom, 8)
+
                 Button(action: {
                     fileHelper.selectedBookType = .printBook
-                    // Use all the above settings in your logic here
                     fileHelper.selectDestinationFolder { destFolder in
                         guard let destFolder = destFolder, let selectedFolder = fileHelper.selectedFolder else { return }
                         var epubInfo = fileHelper.generateEpubInfo()
-                        // Pass settings (selectedFont, marginTop, bleedWidth, etc.) as needed!
                         makeTeXBook(folderURL: selectedFolder, epubInfo: &epubInfo, destFolder: destFolder)
                         LogWindowController.shared.openLogWindow()
                     }
@@ -264,10 +383,16 @@ struct PrintTabView: View {
             }
         }
         .onAppear {
-            // Set trim size to the first for selected target if not already set
             if settingsStore.settings.printTrimSize == nil || settingsStore.settings.printTrimSize == "" {
                 selectedTrimSize.wrappedValue = currentTrimSizes.first ?? ""
             }
+            if settingsStore.settings.printTarget == "Amazon KDP" {
+                autofillKDPFieldsIfNeeded()
+            }
+        }
+        // ALSO: autofill if total words change (for KDP)
+        .onChange(of: settingsStore.settings.printTrimSize) {
+            autofillKDPFieldsIfNeeded()
         }
     }
 }
