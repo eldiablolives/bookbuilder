@@ -11,19 +11,19 @@ struct FileBrowserView: View {
 
     var body: some View {
         VStack {
-            Button(action: {
-                fileHelper.openFolderPicker()
-            }) {
-                Text("Select Folder")
-            }
-            .padding(.top, 8)
+//            Button(action: {
+//                fileHelper.openFolderPicker()
+//            }) {
+//                Text("Select Folder")
+//            }
+//            .padding(.top, 8)
 
-            if let folder = fileHelper.selectedFolder {
-                Text("Selected folder: \(folder.path)")
-                    .padding(.top, 8)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-            }
+//            if let folder = fileHelper.selectedFolder {
+//                Text("Selected folder: \(folder.path)")
+//                    .padding(.top, 8)
+//                    .lineLimit(1)
+//                    .truncationMode(.middle)
+//            }
 
             Text("All Files")
                 .font(.headline)

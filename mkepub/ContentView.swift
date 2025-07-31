@@ -2,7 +2,8 @@ import SwiftUI
 import WebKit
 
 struct ContentView: View {
-    @StateObject var fileHelper = FileHelper()
+//    @StateObject var fileHelper = FileHelper()
+    @EnvironmentObject var fileHelper: FileHelper
     @State private var selectedTab = "eBook"   // For Export Types tab
 
     @State private var dividerPosition: CGFloat = 0.3  // Left divider
