@@ -15,6 +15,7 @@ struct Settings: Codable, Equatable {
     var bleedWidth: String?
     var bleedHeight: String?
     var bleedMargin: String?
+    var words: Int?
 
     // eBook settings (example)
     var ebookCoverImage: String?

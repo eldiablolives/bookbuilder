@@ -3,6 +3,7 @@ import SwiftUI
 struct CentralPanelView: View {
     @ObservedObject var fileHelper: FileHelper
     @Binding var selectedTab: String
+    @EnvironmentObject var settingsStore: SettingsStore
 
     var body: some View {
         VStack {
@@ -21,8 +22,6 @@ struct CentralPanelView: View {
                     TextField("Author", text: $fileHelper.author)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
                         .padding(.top, 8)
-
-                    
                 }
                 .padding()
                 .border(Color.gray.opacity(0.5), width: 1)
@@ -31,7 +30,7 @@ struct CentralPanelView: View {
 
             // Selected Files at the bottom
             VStack {
-                Text("Selected Files")
+                Text("[\(fileHelper.selectedFiles.count)] Selected files, (\(settingsStore.settings.words ?? 0) words)")
                     .font(.headline)
                 List(fileHelper.selectedFiles, id: \.self) { file in
                     Text(file.lastPathComponent)

@@ -10,6 +10,9 @@ struct mkepubApp: App {
             ContentView()
                 .environmentObject(fileHelper)
                 .environmentObject(settingsStore)
+                .onAppear {
+                    fileHelper.settingsStore = settingsStore
+                }
         }
         .commands {
             CommandGroup(after: .newItem) {

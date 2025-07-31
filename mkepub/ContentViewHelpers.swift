@@ -20,6 +20,8 @@ struct FilePreview {
     let filePath: String
 }
 
+// --- FileHelper below ---
+
 class FileHelper: ObservableObject {
     @Published var selectedFolder: URL? = nil
     @Published var filesInFolder: [URL] = []
@@ -29,15 +31,19 @@ class FileHelper: ObservableObject {
     @Published var coverImagePath: URL? = nil
     @Published var addedFonts: [URL] = []
     @Published var addedImages: [URL] = []
-    
-    // Properties for Book Title, Author, and other options
+
+    // Book properties
     @Published var bookTitle: String = ""
     @Published var author: String = ""
     @Published var useCurlyQuotes: Bool = false
     @Published var selectedBookType: BookType = .eBook
     @Published var selectedStyleFile: URL? = nil
-    
-    // Function to open folder picker
+
+    // Store reference
+    weak var settingsStore: SettingsStore?
+
+    // MARK: - Folder Picker
+
     func openFolderPicker() {
         let panel = NSOpenPanel()
         panel.canChooseDirectories = true
@@ -52,7 +58,8 @@ class FileHelper: ObservableObject {
         }
     }
 
-    // Function to read folder contents
+    // MARK: - Folder Reader
+
     func readFolderContents(at url: URL) {
         do {
             let fileManager = FileManager.default
@@ -63,29 +70,44 @@ class FileHelper: ObservableObject {
                 fileManager.fileExists(atPath: item.path, isDirectory: &isDirectory)
                 return !isDirectory.boolValue
             }
-            .sorted(by: { $0.lastPathComponent.lowercased() < $1.lastPathComponent.lowercased() }) // Sort by file name
+            .sorted(by: { $0.lastPathComponent.lowercased() < $1.lastPathComponent.lowercased() })
 
             filesInFolder = files
             checkedFiles = Array(repeating: false, count: files.count)
             selectedFiles = []
+            settingsStore?.settings.words = 0 // reset total words
         } catch {
             print("Error reading folder contents: \(error)")
             filesInFolder = []
             checkedFiles = []
             selectedFiles = []
+            settingsStore?.settings.words = 0
         }
     }
 
-    // Function to update selected files based on the checkbox state
+    // MARK: - Update selection and words
+
     func updateSelectedFiles(for file: URL, isChecked: Bool) {
         if isChecked {
             selectedFiles.append(file)
         } else {
             selectedFiles.removeAll { $0 == file }
         }
+        recalculateTotalSelectedWords()
     }
 
-    // Function to open image picker for JPG/PNG images
+    private func recalculateTotalSelectedWords() {
+        guard let settingsStore = settingsStore else { return }
+        let wordCount = selectedFiles
+            .filter { ["txt", "md", "html", "htm"].contains($0.pathExtension.lowercased()) }
+            .compactMap { try? String(contentsOf: $0, encoding: .utf8) }
+            .map { $0.components(separatedBy: .whitespacesAndNewlines).filter { !$0.isEmpty }.count }
+            .reduce(0, +)
+        settingsStore.settings.words = wordCount
+    }
+
+    // MARK: - Image Picker
+
     func openImagePicker() {
         let panel = NSOpenPanel()
         panel.canChooseFiles = true
@@ -97,20 +119,18 @@ class FileHelper: ObservableObject {
         }
     }
 
-    // Function to load the selected cover image
     func loadImage(from url: URL) {
         if let image = NSImage(contentsOf: url) {
             coverImage = image
             coverImagePath = url
-
-            // Add the cover image to the list of images
             if !addedImages.contains(url) {
                 addedImages.append(url)
             }
         }
     }
 
-    // Function to open file picker for CSS files
+    // MARK: - Style/Font Picker
+
     func openStylePicker() {
         let panel = NSOpenPanel()
         panel.canChooseFiles = true
@@ -122,7 +142,6 @@ class FileHelper: ObservableObject {
         }
     }
 
-    // Function to open file picker for OTF font files
     func openFontPicker() {
         let panel = NSOpenPanel()
         panel.canChooseFiles = true
@@ -133,32 +152,22 @@ class FileHelper: ObservableObject {
             addedFonts.append(url)
         }
     }
-    
-    // Function to generate and return the EpubInfo object
+
+    // MARK: - EpubInfo
+
     func generateEpubInfo() -> EpubInfo {
-        // Helper function to check if a file is an image based on its extension
         func isImageFile(_ url: URL) -> Bool {
             let imageExtensions = ["jpg", "jpeg", "png"]
             return imageExtensions.contains(url.pathExtension.lowercased())
         }
-
-        // Get the paths for the added images
         var images = addedImages.map { $0.standardizedFileURL.path }
-
-        // If a cover image is present, append its path
         if let coverImagePath = coverImagePath?.standardizedFileURL.path {
             images.append(coverImagePath)
         }
-
-        // Filter the documents to get only image files and use standardizedFileURL to deduplicate
         let documentImages = selectedFiles
             .filter { isImageFile($0) }
             .map { $0.standardizedFileURL.path }
-
-        // Combine added images and document images, and remove duplicates
         let allImages = Array(Set(images + documentImages))
-
-        // Return the EpubInfo object with the updated images array
         return EpubInfo(
             id: UUID().uuidString,
             name: bookTitle.isEmpty ? "Untitled Book" : bookTitle,
@@ -166,41 +175,19 @@ class FileHelper: ObservableObject {
             title: bookTitle.isEmpty ? "Untitled Book" : bookTitle,
             start: nil,
             startTitle: nil,
-            cover: coverImagePath?.standardizedFileURL.path, // Convert URL to String here
+            cover: coverImagePath?.standardizedFileURL.path,
             style: selectedStyleFile?.path,
             fonts: addedFonts.map { $0.path },
-            images: allImages, // Use the deduplicated images array here
+            images: allImages,
             documents: selectedFiles.map { $0.path }
         )
     }
 
-    // Function to generate and return the EpubInfo object
-    func XXXgenerateEpubInfo() -> EpubInfo {
-        var images = addedImages.map { $0.path }
-        if let coverImagePath = coverImagePath?.path {
-            images.append(coverImagePath)
-        }
+    // MARK: - Preview
 
-        return EpubInfo(
-            id: UUID().uuidString,
-            name: bookTitle.isEmpty ? "Untitled Book" : bookTitle,
-            author: author.isEmpty ? "Unknown Author" : author,
-            title: bookTitle.isEmpty ? "Untitled Book" : bookTitle,
-            start: nil,
-            startTitle: nil,
-            cover: coverImagePath?.path,
-            style: selectedStyleFile?.path,
-            fonts: addedFonts.map { $0.path },
-            images: images,
-            documents: selectedFiles.map { $0.path }
-        )
-    }
-
-    // Function to preview files
     func getPreview(for path: String) -> FilePreview? {
         let fileURL = URL(fileURLWithPath: path)
         let fileExtension = fileURL.pathExtension.lowercased()
-
         do {
             switch fileExtension {
             case "txt", "md":
@@ -225,8 +212,9 @@ class FileHelper: ObservableObject {
         }
         return nil
     }
-    
-    // Helper function to open folder picker for destination folder
+
+    // MARK: - Destination Picker
+
     func selectDestinationFolder(completion: @escaping (URL?) -> Void) {
         let panel = NSOpenPanel()
         panel.canChooseFiles = false
