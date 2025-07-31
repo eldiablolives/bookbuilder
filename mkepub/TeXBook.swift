@@ -382,8 +382,9 @@ func makeTeXBook(folderURL: URL, epubInfo: inout EpubInfo, destFolder: URL) {
       heightrounded,
       bindingoffset=0.125in
     ]{geometry}
-    \\usepackage{mathpazo}
-    \\linespread{1.25}
+    \\usepackage{fontspec}
+    \\setmainfont[Scale=1.09]{EB Garamond}
+    \\linespread{1.13}
 
     % Enable better hyphenation and tolerance to help prevent overflow
     \\hyphenpenalty=1000
@@ -394,7 +395,6 @@ func makeTeXBook(folderURL: URL, epubInfo: inout EpubInfo, destFolder: URL) {
     \\date{} % Ensure no date is printed
 
     \\begin{document}
-
     """
 
     // Iterate over the list of document URLs from epubInfo.documents and create a TeX file for each

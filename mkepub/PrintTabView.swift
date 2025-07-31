@@ -45,9 +45,20 @@ struct PrintTabView: View {
     ]
 
     let kdpSpecs: [KDPTrimSpec] = [
-        // ... your KDPTrimSpec array unchanged ...
         KDPTrimSpec(trim: "5 x 8", marginTop: "0.75", marginBottom: "0.75", marginInner: "0.75", marginOuter: "0.5", gutter: "0.375", bleedWidth: "5.25", bleedHeight: "8.25", bleedMargin: "0.125", minPages: 24, maxPages: 828),
-        // ... (rest unchanged) ...
+        KDPTrimSpec(trim: "5.06 x 7.81", marginTop: "0.75", marginBottom: "0.75", marginInner: "0.75", marginOuter: "0.5", gutter: "0.375", bleedWidth: "5.31", bleedHeight: "8.06", bleedMargin: "0.125", minPages: 24, maxPages: 828),
+        KDPTrimSpec(trim: "5.25 x 8", marginTop: "0.75", marginBottom: "0.75", marginInner: "0.75", marginOuter: "0.5", gutter: "0.375", bleedWidth: "5.5", bleedHeight: "8.25", bleedMargin: "0.125", minPages: 24, maxPages: 828),
+        KDPTrimSpec(trim: "5.5 x 8.5", marginTop: "0.75", marginBottom: "0.75", marginInner: "0.75", marginOuter: "0.5", gutter: "0.375", bleedWidth: "5.75", bleedHeight: "8.75", bleedMargin: "0.125", minPages: 24, maxPages: 828),
+        KDPTrimSpec(trim: "6 x 9", marginTop: "0.75", marginBottom: "0.75", marginInner: "0.75", marginOuter: "0.5", gutter: "0.375", bleedWidth: "6.25", bleedHeight: "9.25", bleedMargin: "0.125", minPages: 24, maxPages: 828),
+        KDPTrimSpec(trim: "6.14 x 9.21", marginTop: "0.75", marginBottom: "0.75", marginInner: "0.75", marginOuter: "0.5", gutter: "0.375", bleedWidth: "6.39", bleedHeight: "9.46", bleedMargin: "0.125", minPages: 24, maxPages: 828),
+        KDPTrimSpec(trim: "6.69 x 9.61", marginTop: "0.75", marginBottom: "0.75", marginInner: "0.75", marginOuter: "0.5", gutter: "0.375", bleedWidth: "6.94", bleedHeight: "9.86", bleedMargin: "0.125", minPages: 24, maxPages: 828),
+        KDPTrimSpec(trim: "7 x 10", marginTop: "0.75", marginBottom: "0.75", marginInner: "0.75", marginOuter: "0.5", gutter: "0.375", bleedWidth: "7.25", bleedHeight: "10.25", bleedMargin: "0.125", minPages: 24, maxPages: 828),
+        KDPTrimSpec(trim: "7.44 x 9.69", marginTop: "0.75", marginBottom: "0.75", marginInner: "0.75", marginOuter: "0.5", gutter: "0.375", bleedWidth: "7.69", bleedHeight: "9.94", bleedMargin: "0.125", minPages: 24, maxPages: 828),
+        KDPTrimSpec(trim: "7.5 x 9.25", marginTop: "0.75", marginBottom: "0.75", marginInner: "0.75", marginOuter: "0.5", gutter: "0.375", bleedWidth: "7.75", bleedHeight: "9.5", bleedMargin: "0.125", minPages: 24, maxPages: 828),
+        KDPTrimSpec(trim: "8 x 10", marginTop: "0.75", marginBottom: "0.75", marginInner: "0.75", marginOuter: "0.5", gutter: "0.375", bleedWidth: "8.25", bleedHeight: "10.25", bleedMargin: "0.125", minPages: 24, maxPages: 828),
+        KDPTrimSpec(trim: "8.25 x 6", marginTop: "0.75", marginBottom: "0.75", marginInner: "0.75", marginOuter: "0.5", gutter: "0.375", bleedWidth: "8.5", bleedHeight: "6.25", bleedMargin: "0.125", minPages: 24, maxPages: 828),
+        KDPTrimSpec(trim: "8.25 x 8.25", marginTop: "0.75", marginBottom: "0.75", marginInner: "0.75", marginOuter: "0.5", gutter: "0.375", bleedWidth: "8.5", bleedHeight: "8.5", bleedMargin: "0.125", minPages: 24, maxPages: 828),
+        KDPTrimSpec(trim: "8.5 x 8.5", marginTop: "0.75", marginBottom: "0.75", marginInner: "0.75", marginOuter: "0.5", gutter: "0.375", bleedWidth: "8.75", bleedHeight: "8.75", bleedMargin: "0.125", minPages: 24, maxPages: 828),
         KDPTrimSpec(trim: "8.5 x 11", marginTop: "0.75", marginBottom: "0.75", marginInner: "0.75", marginOuter: "0.5", gutter: "0.375", bleedWidth: "8.75", bleedHeight: "11.25", bleedMargin: "0.125", minPages: 24, maxPages: 828)
     ]
     
@@ -60,14 +71,12 @@ struct PrintTabView: View {
         let normalized = normalizeTrim(trim)
         return kdpSpecs.first { $0.trim == normalized && pages >= $0.minPages && pages <= $0.maxPages }
     }
-    func autofillKDPFieldsIfNeeded() {
-        guard settingsStore.settings.printTarget == "Amazon KDP" else { return }
-        guard let trim = settingsStore.settings.printTrimSize,
-              let words = settingsStore.settings.words,
-              let fontSize = Double(settingsStore.settings.fontSize ?? "11"),
-              let lineSpacing = Double(settingsStore.settings.lineSpacing ?? "1.2")
-        else { return }
-        // Match estimation to UI calculation
+    
+    var estimatedWordsPerPage: Int {
+        let trim = settingsStore.settings.printTrimSize ?? "6\" x 9\""
+        let fontSizeValue = Double(settingsStore.settings.fontSize ?? "11") ?? 11
+        let lineSpacingValue = Double(settingsStore.settings.lineSpacing ?? "1.2") ?? 1.2
+
         let baseWords: Int = {
             if trim.contains("8.5") && trim.contains("11") { return 600 }
             if trim.contains("8.25") && trim.contains("11") { return 590 }
@@ -80,21 +89,58 @@ struct PrintTabView: View {
             if trim.contains("5") && trim.contains("8") { return 300 }
             return 370
         }()
-        let fontSizeMod = 11.0 / fontSize
-        let lineSpacingMod = 1.2 / lineSpacing
-        let wordsPerPage = max(100, Int(Double(baseWords) * fontSizeMod * lineSpacingMod))
-        let pages = max(1, Int(round(Double(words) / Double(wordsPerPage))))
-        if let spec = kdpSpecFor(trim: trim, pages: pages) {
-            settingsStore.settings.marginTop = spec.marginTop
-            settingsStore.settings.marginBottom = spec.marginBottom
-            settingsStore.settings.marginInner = spec.marginInner
-            settingsStore.settings.marginOuter = spec.marginOuter
-            settingsStore.settings.gutter = spec.gutter
-            settingsStore.settings.bleedWidth = spec.bleedWidth
-            settingsStore.settings.bleedHeight = spec.bleedHeight
-            settingsStore.settings.bleedMargin = spec.bleedMargin
-        }
+
+        let fontSizeMod = 11.0 / fontSizeValue
+        let lineSpacingMod = 1.2 / lineSpacingValue
+        return max(100, Int(Double(baseWords) * fontSizeMod * lineSpacingMod))
     }
+
+    var estimatedPages: Int {
+        let totalWords = settingsStore.settings.words ?? 0
+        return max(1, (totalWords + estimatedWordsPerPage - 1) / estimatedWordsPerPage)
+    }
+    
+    func baseWords(for trim: String) -> Int {
+        if trim.contains("8.5") && trim.contains("11") { return 600 }
+        if trim.contains("8.25") && trim.contains("11") { return 590 }
+        if trim.contains("8.25") && trim.contains("10.75") { return 570 }
+        if trim.contains("8.5") && trim.contains("8.5") { return 460 }
+        if trim.contains("7") && trim.contains("10") { return 400 }
+        if trim.contains("6.69") && trim.contains("9.61") { return 390 }
+        if trim.contains("6") && trim.contains("9") { return 370 }
+        if trim.contains("5.5") && trim.contains("8.5") { return 320 }
+        if trim.contains("5") && trim.contains("8") { return 300 }
+        return 370
+    }
+
+        func autofillKDPFieldsIfNeeded() {
+            guard settingsStore.settings.printTarget == "Amazon KDP" else { return }
+            guard let trim = settingsStore.settings.printTrimSize else { return }
+
+            let pages = estimatedPages
+
+            if let spec = kdpSpecFor(trim: trim, pages: pages) {
+                settingsStore.settings.marginTop = spec.marginTop
+                settingsStore.settings.marginBottom = spec.marginBottom
+                settingsStore.settings.marginInner = spec.marginInner
+                settingsStore.settings.marginOuter = spec.marginOuter
+                settingsStore.settings.bleedWidth = spec.bleedWidth
+                settingsStore.settings.bleedHeight = spec.bleedHeight
+                settingsStore.settings.bleedMargin = spec.bleedMargin
+            }
+
+            // Gutter based on page count
+            settingsStore.settings.gutter = {
+                switch pages {
+                case 0...150: return "0.375"
+                case 151...300: return "0.5"
+                case 301...500: return "0.625"
+                case 501...700: return "0.75"
+                case 701...828: return "0.875"
+                default: return "0.375"
+                }
+            }()
+        }
 
     var currentTrimSizes: [String] {
         trimSizes[settingsStore.settings.printTarget ?? "Amazon KDP"] ?? ["Custom size..."]
@@ -346,10 +392,11 @@ struct PrintTabView: View {
                 }()
                 let fontSizeMod = 11.0 / fontSizeValue
                 let lineSpacingMod = 1.2 / lineSpacingValue
-                let estimatedWordsPerPage = max(100, Int(Double(baseWords) * fontSizeMod * lineSpacingMod))
+//                let estimatedWordsPerPage = max(100, Int(Double(baseWords) * fontSizeMod * lineSpacingMod))
                 let totalWords = settingsStore.settings.words ?? 0
                 let estimatedPages = max(1, (totalWords + estimatedWordsPerPage - 1) / estimatedWordsPerPage)
 
+                
                 // --- UI ---
                 HStack {
                     Text("Words per page: \(estimatedWordsPerPage)")
@@ -386,6 +433,24 @@ struct PrintTabView: View {
             if settingsStore.settings.printTrimSize == nil || settingsStore.settings.printTrimSize == "" {
                 selectedTrimSize.wrappedValue = currentTrimSizes.first ?? ""
             }
+            if settingsStore.settings.printTarget == "Amazon KDP" {
+                autofillKDPFieldsIfNeeded()
+            }
+        }
+        .onChange(of: settingsStore.settings.printTrimSize) { _ in
+            autofillKDPFieldsIfNeeded()
+        }
+        .onChange(of: settingsStore.settings.words) { _ in
+            if settingsStore.settings.printTarget == "Amazon KDP" {
+                autofillKDPFieldsIfNeeded()
+            }
+        }
+        .onChange(of: settingsStore.settings.fontSize) { _ in
+            if settingsStore.settings.printTarget == "Amazon KDP" {
+                autofillKDPFieldsIfNeeded()
+            }
+        }
+        .onChange(of: settingsStore.settings.lineSpacing) { _ in
             if settingsStore.settings.printTarget == "Amazon KDP" {
                 autofillKDPFieldsIfNeeded()
             }
