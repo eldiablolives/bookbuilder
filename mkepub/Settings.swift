@@ -6,6 +6,7 @@ struct Settings: Codable, Equatable {
     var title: String?
     var author: String?
     var images: [String]?
+    var words: Int?
     
     // epub
     var cover: String?
@@ -27,7 +28,6 @@ struct Settings: Codable, Equatable {
     var bleedWidth: String?
     var bleedHeight: String?
     var bleedMargin: String?
-    var words: Int?
     var ebookCoverImage: String?
     var ebookStyle: String?
     
@@ -37,13 +37,14 @@ struct Settings: Codable, Equatable {
     var paragraphIndent: String?     // e.g. "1.2em"
     var paragraphSkip: String?       // e.g. "0.5em"
     var justifyText: Bool?           // true/false
-    var hyphenate: Bool?             // true/false
-    var headerContent: String?       // e.g. "Book Title"
-    var footerContent: String?       // e.g. "Page \thepage"
+    var removeSpaceBetwenHyphens: Bool?             // true/false
     var pageNumberStyle: String?     // "arabic", "roman", "none"
     var sectionSpacing: String?      // e.g. "2em"
     var printParagraphBreakSeparator: String? // e.g. * * *
-  
+
+//    var headerContent: String?       // e.g. "Book Title"
+//    var footerContent: String?       // e.g. "Page \thepage"
+
 }
 
 class SettingsStore: ObservableObject {
@@ -70,22 +71,8 @@ class SettingsStore: ObservableObject {
     
     // Save settings to last loaded folder, if any
     func save() throws {
-        guard let url = settingsURL else {
-//            let alert = NSAlert()
-//            alert.messageText = "Settings Saved"
-//            alert.informativeText = "Settings NOT SAVED"
-//            alert.addButton(withTitle: "OK")
-//            alert.runModal()
-            
-            return }
+        guard let url = settingsURL else { return }
         let data = try JSONEncoder().encode(settings)
         try data.write(to: url)
-        
-        // Show a popup alert to confirm save is called
-//        let alert = NSAlert()
-//        alert.messageText = "Settings Saved"
-//        alert.informativeText = "Settings were saved to \(url.path)"
-//        alert.addButton(withTitle: "OK")
-//        alert.runModal()
     }
 }

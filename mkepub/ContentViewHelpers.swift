@@ -33,8 +33,8 @@ class FileHelper: ObservableObject {
     @Published var addedImages: [URL] = []
 
     // Book properties
-    @Published var bookTitle: String = ""
-    @Published var author: String = ""
+//    @Published var bookTitle: String = ""
+//    @Published var author: String = ""
     @Published var useCurlyQuotes: Bool = false
     @Published var selectedBookType: BookType = .eBook
     @Published var selectedStyleFile: URL? = nil
@@ -174,9 +174,9 @@ class FileHelper: ObservableObject {
         let allImages = Array(Set(images + documentImages))
         return EpubInfo(
             id: UUID().uuidString,
-            name: bookTitle.isEmpty ? "Untitled Book" : bookTitle,
-            author: author.isEmpty ? "Unknown Author" : author,
-            title: bookTitle.isEmpty ? "Untitled Book" : bookTitle,
+            name:   (settingsStore?.settings.title?.isEmpty == false ? settingsStore?.settings.title : nil) ?? "Untitled",
+            author: (settingsStore?.settings.author?.isEmpty == false ? settingsStore?.settings.title : nil) ?? "Unknown",
+            title: (settingsStore?.settings.title?.isEmpty == false ? settingsStore?.settings.title : nil) ?? "Untitled",
             start: nil,
             startTitle: nil,
             cover: coverImagePath?.standardizedFileURL.path,
