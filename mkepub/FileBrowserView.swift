@@ -9,16 +9,16 @@ struct FileBrowserView: View {
 
     var geometry: GeometryProxy
 
-    // Computed property for indices of displayable files
+    // MARK: - Displayable Files (filtered by extension)
     private var displayableFileIndices: [Int] {
         fileHelper.filesInFolder.indices.filter { idx in
             let fileURL = fileHelper.filesInFolder[idx]
-            let fileExtension = fileURL.pathExtension.lowercased()
-            return ["md", "txt", "jpg", "png"].contains(fileExtension)
+            let ext = fileURL.pathExtension.lowercased()
+            return ["md", "txt", "jpg", "png"].contains(ext)
         }
     }
 
-    // The "select all" binding applies only to displayable files
+    // MARK: - "Select All" for displayable files only
     private var isAllSelected: Binding<Bool> {
         Binding<Bool>(
             get: {
@@ -44,7 +44,7 @@ struct FileBrowserView: View {
                 .padding(.horizontal)
 
             List {
-                // The master checkbox row at the top of the list
+                // Master checkbox
                 HStack {
                     Toggle(isOn: isAllSelected) {
                         Text("File name")
@@ -56,19 +56,20 @@ struct FileBrowserView: View {
                     Spacer()
                 }
 
-                // Then, your files
+                // Individual files
                 ForEach(fileHelper.filesInFolder.indices, id: \.self) { index in
                     let fileURL = fileHelper.filesInFolder[index]
-                    let fileExtension = fileURL.pathExtension.lowercased()
+                    let ext = fileURL.pathExtension.lowercased()
 
-                    if ["md", "txt", "jpg", "png"].contains(fileExtension) {
+                    if ["md", "txt", "jpg", "png"].contains(ext) {
                         HStack {
                             Toggle(isOn: Binding(
                                 get: { fileHelper.checkedFiles[index] },
                                 set: { newValue in
                                     fileHelper.checkedFiles[index] = newValue
                                     fileHelper.updateSelectedFiles(for: fileURL, isChecked: newValue)
-                                })) {
+                                }
+                            )) {
                                 Text(fileURL.lastPathComponent)
                             }
                             .toggleStyle(.checkbox)
@@ -90,5 +91,33 @@ struct FileBrowserView: View {
                     initialDividerPosition = dividerPosition
                 }
         )
+        // MARK: - Auto-load checked state from settings when folder changes
+        .onChange(of: fileHelper.selectedFolder) { _ in
+            restoreCheckedFilesFromSettings()
+        }
+        // Also restore on first appear (in case folder was pre-loaded)
+        .onAppear {
+            restoreCheckedFilesFromSettings()
+        }
+    }
+
+    // MARK: - Restore checked state from saved filenames
+    private func restoreCheckedFilesFromSettings() {
+        guard let folder = fileHelper.selectedFolder else { return }
+
+        // Get saved filenames from settings (relative to folder)
+        let savedFilenames = fileHelper.settingsStore?.settings.files ?? []
+
+        // Reset all checkboxes
+        fileHelper.checkedFiles = Array(repeating: false, count: fileHelper.filesInFolder.count)
+
+        // Match saved filenames → mark as checked
+        for (index, fileURL) in fileHelper.filesInFolder.enumerated() {
+            let filename = fileURL.lastPathComponent
+            if savedFilenames.contains(filename) {
+                fileHelper.checkedFiles[index] = true
+                fileHelper.updateSelectedFiles(for: fileURL, isChecked: true)
+            }
+        }
     }
 }
