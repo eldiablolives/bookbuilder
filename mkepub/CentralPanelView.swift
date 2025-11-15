@@ -20,9 +20,29 @@ struct CentralPanelView: View {
         }
         .background(Color.gray.opacity(0.1))
         .onAppear {
+            // Default start page: first selected file
             if startingFile == nil {
                 startingFile = fileHelper.selectedFiles.first
             }
+
+            // Keep settings.files in sync on first show
+            syncFilesIntoSettings()
+        }
+        // 🔑 Any time the selectedFiles array changes (add/remove/reorder),
+        // update Settings.files and save.
+        .onChange(of: fileHelper.selectedFiles) {
+            // zero-parameter closure → no deprecation warning
+            syncFilesIntoSettings()
+        }
+        // 🔑 Any time the radio selection changes, update settings.start and save.
+        .onChange(of: startingFile) { oldFile, newFile in
+            if let file = newFile {
+                // store just the name; use file.path if you prefer full path
+                settingsStore.settings.start = file.lastPathComponent
+            } else {
+                settingsStore.settings.start = nil
+            }
+            saveSettings()
         }
     }
 }
@@ -103,13 +123,12 @@ private extension CentralPanelView {
         }
         .contentShape(Rectangle())
         .onTapGesture {
+            // Just change the selection; onChange(startingFile) handles saving.
             startingFile = file
         }
         // Drag source
         .onDrag {
             draggedItem = file
-            // We just need *some* data; the system will still
-            // use a preview based on the row’s view.
             return NSItemProvider(object: file.lastPathComponent as NSString)
         }
         // Drop target – reorder ONLY ON DROP
@@ -121,6 +140,26 @@ private extension CentralPanelView {
                 draggedItem: $draggedItem
             )
         )
+    }
+}
+
+// MARK: - Sync helpers
+
+private extension CentralPanelView {
+    /// Sync the current selectedFiles into settings.files and save.
+    func syncFilesIntoSettings() {
+        // Store just filenames; change to `$0.path` for full paths
+        settingsStore.settings.files = fileHelper.selectedFiles.map { $0.lastPathComponent }
+        saveSettings()
+    }
+
+    func saveSettings() {
+        do {
+            try settingsStore.save()
+            print("Settings saved from CentralPanelView")
+        } catch {
+            print("Failed to save settings from CentralPanelView: \(error)")
+        }
     }
 }
 

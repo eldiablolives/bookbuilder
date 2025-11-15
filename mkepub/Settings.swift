@@ -13,6 +13,8 @@ struct Settings: Codable, Equatable {
     var style: String?
     var fonts: [String]?
     var start: String? // start page
+    var buildPath: String?
+    var files: [String]?
     
     // print properties
     var printTarget: String?
