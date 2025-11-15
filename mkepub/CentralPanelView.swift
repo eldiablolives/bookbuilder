@@ -20,24 +20,15 @@ struct CentralPanelView: View {
         }
         .background(Color.gray.opacity(0.1))
         .onAppear {
-            // Default start page: first selected file
-            if startingFile == nil {
-                startingFile = fileHelper.selectedFiles.first
-            }
-
-            // Keep settings.files in sync on first show
+            restoreStartingFileFromSettings()
             syncFilesIntoSettings()
         }
-        // 🔑 Any time the selectedFiles array changes (add/remove/reorder),
-        // update Settings.files and save.
         .onChange(of: fileHelper.selectedFiles) {
-            // zero-parameter closure → no deprecation warning
+            restoreStartingFileFromSettings()
             syncFilesIntoSettings()
         }
-        // 🔑 Any time the radio selection changes, update settings.start and save.
         .onChange(of: startingFile) { oldFile, newFile in
             if let file = newFile {
-                // store just the name; use file.path if you prefer full path
                 settingsStore.settings.start = file.lastPathComponent
             } else {
                 settingsStore.settings.start = nil
@@ -48,7 +39,6 @@ struct CentralPanelView: View {
 }
 
 // MARK: - Header
-
 private extension CentralPanelView {
     var header: some View {
         Text("Processor")
@@ -60,7 +50,6 @@ private extension CentralPanelView {
 }
 
 // MARK: - Top fields
-
 private extension CentralPanelView {
     var topFields: some View {
         HStack(alignment: .top) {
@@ -93,7 +82,6 @@ private extension CentralPanelView {
 }
 
 // MARK: - File list
-
 private extension CentralPanelView {
     var fileListSection: some View {
         VStack {
@@ -123,15 +111,12 @@ private extension CentralPanelView {
         }
         .contentShape(Rectangle())
         .onTapGesture {
-            // Just change the selection; onChange(startingFile) handles saving.
             startingFile = file
         }
-        // Drag source
         .onDrag {
             draggedItem = file
             return NSItemProvider(object: file.lastPathComponent as NSString)
         }
-        // Drop target – reorder ONLY ON DROP
         .onDrop(
             of: [UTType.text],
             delegate: FileDropDelegate(
@@ -144,11 +129,9 @@ private extension CentralPanelView {
 }
 
 // MARK: - Sync helpers
-
 private extension CentralPanelView {
-    /// Sync the current selectedFiles into settings.files and save.
+    /// Sync selectedFiles → settings.files
     func syncFilesIntoSettings() {
-        // Store just filenames; change to `$0.path` for full paths
         settingsStore.settings.files = fileHelper.selectedFiles.map { $0.lastPathComponent }
         saveSettings()
     }
@@ -161,19 +144,37 @@ private extension CentralPanelView {
             print("Failed to save settings from CentralPanelView: \(error)")
         }
     }
+
+    /// Restore startingFile from settings.start (filename)
+    func restoreStartingFileFromSettings() {
+        guard !fileHelper.selectedFiles.isEmpty else {
+            startingFile = nil
+            return
+        }
+
+        let savedStartName = settingsStore.settings.start
+
+        // Try to find file by name
+        if let savedName = savedStartName,
+           let matchingFile = fileHelper.selectedFiles.first(where: { $0.lastPathComponent == savedName }) {
+            startingFile = matchingFile
+        } else {
+            // Default to first file
+            startingFile = fileHelper.selectedFiles.first
+            // Save the default
+            settingsStore.settings.start = startingFile?.lastPathComponent
+            saveSettings()
+        }
+    }
 }
 
-// MARK: - Drop delegate: move only on DROP
-
+// MARK: - Drop delegate
 struct FileDropDelegate: DropDelegate {
     let item: URL
     @Binding var items: [URL]
     @Binding var draggedItem: URL?
 
-    // We DON’T reorder here – we wait until performDrop
-    func dropEntered(info: DropInfo) {
-        // intentionally empty: no live reordering while hovering
-    }
+    func dropEntered(info: DropInfo) {}
 
     func performDrop(info: DropInfo) -> Bool {
         guard

@@ -47,7 +47,6 @@ struct EBookTabView: View {
 
             // ────── Build ──────
             Button(action: {
-                // ensure the latest values are on disk before building
                 syncEbookSettingsFromFileHelper()
                 fileHelper.selectedBookType = .eBook
                 fileHelper.selectDestinationFolder { destFolder in
@@ -72,69 +71,77 @@ struct EBookTabView: View {
             .padding(.top, 16)
         }
         .padding()
-        // -------------------------------------------------
-        //  Sync / load logic
-        // -------------------------------------------------
+        // ──────────────────────────────────────────────────────────────
+        //  Auto-restore cover/style/fonts when folder opens or tab appears
+        // ──────────────────────────────────────────────────────────────
         .onAppear {
-            loadEbookSettingsIntoFileHelper()
-            syncEbookSettingsFromFileHelper()   // first-time save
+            restoreEbookAssetsFromSettings()
         }
+        .onChange(of: fileHelper.selectedFolder) { _ in
+            restoreEbookAssetsFromSettings()
+        }
+        // ──────────────────────────────────────────────────────────────
+        //  Auto-save on any change
+        // ──────────────────────────────────────────────────────────────
         .onChange(of: fileHelper.coverImagePath) { _ in syncEbookSettingsFromFileHelper() }
         .onChange(of: fileHelper.selectedStyleFile) { _ in syncEbookSettingsFromFileHelper() }
         .onChange(of: fileHelper.addedFonts) { _ in syncEbookSettingsFromFileHelper() }
     }
-}
 
-// MARK: - Settings <-> FileHelper sync (full paths)
+    // MARK: - Restore cover, style, fonts from config
+    private func restoreEbookAssetsFromSettings() {
+        guard fileHelper.selectedFolder != nil else { return }
 
-private extension EBookTabView {
-
-    // ---- Load persisted full paths → FileHelper ----
-    func loadEbookSettingsIntoFileHelper() {
         // Cover
         if let path = settingsStore.settings.cover,
            FileManager.default.fileExists(atPath: path) {
             let url = URL(fileURLWithPath: path)
             fileHelper.coverImagePath = url
             fileHelper.coverImage = NSImage(contentsOf: url)
+            if !fileHelper.addedImages.contains(url) {
+                fileHelper.addedImages.append(url)
+            }
+        } else {
+            fileHelper.coverImage = nil
+            fileHelper.coverImagePath = nil
         }
 
         // Style
         if let path = settingsStore.settings.style,
            FileManager.default.fileExists(atPath: path) {
             fileHelper.selectedStyleFile = URL(fileURLWithPath: path)
+        } else {
+            fileHelper.selectedStyleFile = nil
         }
 
         // Fonts
         if let paths = settingsStore.settings.fonts {
-            let urls = paths.compactMap { path -> URL? in
+            let validURLs = paths.compactMap { path -> URL? in
                 let url = URL(fileURLWithPath: path)
                 return FileManager.default.fileExists(atPath: path) ? url : nil
             }
-            fileHelper.addedFonts = urls
+            fileHelper.addedFonts = validURLs
+        } else {
+            fileHelper.addedFonts = []
         }
+
+        // Optional: first-time save to ensure consistency
+        syncEbookSettingsFromFileHelper()
     }
 
-    // ---- Save FileHelper → settings + disk (full paths) ----
-    func syncEbookSettingsFromFileHelper() {
-        // Cover
+    // MARK: - Save current state to settings
+    private func syncEbookSettingsFromFileHelper() {
         settingsStore.settings.cover = fileHelper.coverImagePath?.path
-
-        // Style
         settingsStore.settings.style = fileHelper.selectedStyleFile?.path
-
-        // Fonts
-        settingsStore.settings.fonts = fileHelper.addedFonts.isEmpty
-            ? nil
-            : fileHelper.addedFonts.map(\.path)
+        settingsStore.settings.fonts = fileHelper.addedFonts.isEmpty ? nil : fileHelper.addedFonts.map(\.path)
 
         saveSettings()
     }
 
-    func saveSettings() {
+    private func saveSettings() {
         do {
             try settingsStore.save()
-            print("EBookTabView: saved cover/style/fonts (full paths)")
+            print("EBookTabView: saved cover/style/fonts")
         } catch {
             print("EBookTabView: failed to save – \(error)")
         }
