@@ -33,8 +33,6 @@ class FileHelper: ObservableObject {
     @Published var addedImages: [URL] = []
 
     // Book properties
-//    @Published var bookTitle: String = ""
-//    @Published var author: String = ""
     @Published var useCurlyQuotes: Bool = false
     @Published var selectedBookType: BookType = .eBook
     @Published var selectedStyleFile: URL? = nil
@@ -75,9 +73,8 @@ class FileHelper: ObservableObject {
             filesInFolder = files
             checkedFiles = Array(repeating: false, count: files.count)
             selectedFiles = []
-            settingsStore?.settings.words = 0 // reset total words
+            settingsStore?.settings.words = 0
 
-            // ---- Load the settings for this folder!
             settingsStore?.load(from: url)
 
         } catch {
@@ -110,16 +107,41 @@ class FileHelper: ObservableObject {
         settingsStore.settings.words = wordCount
     }
 
+    // MARK: - Reusable File Picker (macOS 12+ safe)
+
+    private func openFilePicker(
+        title: String? = nil,
+        allowedExtensions: [String],
+        allowsMultipleSelection: Bool = false,
+        completion: @escaping ([URL]) -> Void
+    ) {
+        let panel = NSOpenPanel()
+        panel.title = title
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = false
+        panel.allowsMultipleSelection = allowsMultipleSelection
+
+        // Convert extensions → UTType safely (macOS 12+)
+        let contentTypes = allowedExtensions.compactMap { UTType(filenameExtension: $0) }
+        panel.allowedContentTypes = contentTypes.isEmpty ? [.item] : contentTypes
+
+        if panel.runModal() == .OK {
+            completion(panel.urls)
+        } else {
+            completion([])
+        }
+    }
+
     // MARK: - Image Picker
 
     func openImagePicker() {
-        let panel = NSOpenPanel()
-        panel.canChooseFiles = true
-        panel.allowedContentTypes = [UTType.jpeg, UTType.png]
-        panel.allowsMultipleSelection = false
-
-        if panel.runModal() == .OK, let url = panel.url {
-            loadImage(from: url)
+        openFilePicker(
+            title: "Select Cover Image",
+            allowedExtensions: ["png", "jpg", "jpeg", "gif", "bmp", "tiff"],
+            allowsMultipleSelection: false
+        ) { urls in
+            guard let url = urls.first else { return }
+            self.loadImage(from: url)
         }
     }
 
@@ -133,27 +155,28 @@ class FileHelper: ObservableObject {
         }
     }
 
-    // MARK: - Style/Font Picker
+    // MARK: - Style Picker
 
     func openStylePicker() {
-        let panel = NSOpenPanel()
-        panel.canChooseFiles = true
-        panel.allowedContentTypes = [UTType(filenameExtension: "css")!]
-        panel.allowsMultipleSelection = false
-
-        if panel.runModal() == .OK {
-            selectedStyleFile = panel.url
+        openFilePicker(
+            title: "Select Style File",
+            allowedExtensions: ["css", "html", "htm"],
+            allowsMultipleSelection: false
+        ) { urls in
+            self.selectedStyleFile = urls.first
         }
     }
 
-    func openFontPicker() {
-        let panel = NSOpenPanel()
-        panel.canChooseFiles = true
-        panel.allowedContentTypes = [UTType(filenameExtension: "otf")!]
-        panel.allowsMultipleSelection = false
+    // MARK: - Font Picker (MULTI-SELECT ENABLED)
 
-        if panel.runModal() == .OK, let url = panel.url {
-            addedFonts.append(url)
+    func openFontPicker() {
+        openFilePicker(
+            title: "Select Fonts",
+            allowedExtensions: ["ttf", "otf", "woff", "woff2"],
+            allowsMultipleSelection: true
+        ) { urls in
+            let newFonts = urls.filter { !self.addedFonts.contains($0) }
+            self.addedFonts.append(contentsOf: newFonts)
         }
     }
 
@@ -175,8 +198,8 @@ class FileHelper: ObservableObject {
         return EpubInfo(
             id: UUID().uuidString,
             name:   (settingsStore?.settings.title?.isEmpty == false ? settingsStore?.settings.title : nil) ?? "Untitled",
-            author: (settingsStore?.settings.author?.isEmpty == false ? settingsStore?.settings.title : nil) ?? "Unknown",
-            title: (settingsStore?.settings.title?.isEmpty == false ? settingsStore?.settings.title : nil) ?? "Untitled",
+            author: (settingsStore?.settings.author?.isEmpty == false ? settingsStore?.settings.author : nil) ?? "Unknown",
+            title:  (settingsStore?.settings.title?.isEmpty == false ? settingsStore?.settings.title : nil) ?? "Untitled",
             start: nil,
             startTitle: nil,
             cover: coverImagePath?.standardizedFileURL.path,
@@ -200,7 +223,7 @@ class FileHelper: ObservableObject {
             case "html", "htm":
                 let htmlContent = try String(contentsOf: fileURL, encoding: .utf8)
                 return FilePreview(type: .html(content: htmlContent), filePath: path)
-            case "jpg", "png":
+            case "jpg", "jpeg", "png":
                 if let image = NSImage(contentsOf: fileURL) {
                     return FilePreview(type: .image(content: image), filePath: path)
                 }
