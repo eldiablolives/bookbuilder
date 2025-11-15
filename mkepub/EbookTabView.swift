@@ -93,9 +93,8 @@ struct EBookTabView: View {
         guard fileHelper.selectedFolder != nil else { return }
 
         // Cover
-        if let path = settingsStore.settings.cover,
-           FileManager.default.fileExists(atPath: path) {
-            let url = URL(fileURLWithPath: path)
+        if let data = settingsStore.settings.coverBookmark,
+           let url = settingsStore.resolveBookmark(data) {
             fileHelper.coverImagePath = url
             fileHelper.coverImage = NSImage(contentsOf: url)
             if !fileHelper.addedImages.contains(url) {
@@ -107,20 +106,17 @@ struct EBookTabView: View {
         }
 
         // Style
-        if let path = settingsStore.settings.style,
-           FileManager.default.fileExists(atPath: path) {
-            fileHelper.selectedStyleFile = URL(fileURLWithPath: path)
+        if let data = settingsStore.settings.styleBookmark,
+           let url = settingsStore.resolveBookmark(data) {
+            fileHelper.selectedStyleFile = url
         } else {
             fileHelper.selectedStyleFile = nil
         }
 
         // Fonts
-        if let paths = settingsStore.settings.fonts {
-            let validURLs = paths.compactMap { path -> URL? in
-                let url = URL(fileURLWithPath: path)
-                return FileManager.default.fileExists(atPath: path) ? url : nil
-            }
-            fileHelper.addedFonts = validURLs
+        if let bookmarks = settingsStore.settings.fontBookmarks {
+            let urls = bookmarks.compactMap { settingsStore.resolveBookmark($0) }
+            fileHelper.addedFonts = urls
         } else {
             fileHelper.addedFonts = []
         }
@@ -131,9 +127,33 @@ struct EBookTabView: View {
 
     // MARK: - Save current state to settings
     private func syncEbookSettingsFromFileHelper() {
-        settingsStore.settings.cover = fileHelper.coverImagePath?.path
-        settingsStore.settings.style = fileHelper.selectedStyleFile?.path
-        settingsStore.settings.fonts = fileHelper.addedFonts.isEmpty ? nil : fileHelper.addedFonts.map(\.path)
+        // Save cover bookmark
+        if let url = fileHelper.coverImagePath,
+           let data = try? url.bookmarkData(options: [.withSecurityScope],
+                                           includingResourceValuesForKeys: nil,
+                                           relativeTo: nil) {
+            settingsStore.settings.coverBookmark = data
+        } else {
+            settingsStore.settings.coverBookmark = nil
+        }
+
+        // Save style bookmark
+        if let url = fileHelper.selectedStyleFile,
+           let data = try? url.bookmarkData(options: [.withSecurityScope],
+                                           includingResourceValuesForKeys: nil,
+                                           relativeTo: nil) {
+            settingsStore.settings.styleBookmark = data
+        } else {
+            settingsStore.settings.styleBookmark = nil
+        }
+
+        // Save font bookmarks
+        let fontBookmarks = fileHelper.addedFonts.compactMap { url -> Data? in
+            try? url.bookmarkData(options: [.withSecurityScope],
+                                  includingResourceValuesForKeys: nil,
+                                  relativeTo: nil)
+        }
+        settingsStore.settings.fontBookmarks = fontBookmarks.isEmpty ? nil : fontBookmarks
 
         saveSettings()
     }

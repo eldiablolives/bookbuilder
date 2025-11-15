@@ -15,6 +15,12 @@ struct Settings: Codable, Equatable {
     var start: String? // start page
     var buildPath: String?
     var files: [String]?
+
+    // Security-scoped bookmarks
+    var coverBookmark: Data?
+    var styleBookmark: Data?
+    var fontBookmarks: [Data]?
+    var imageBookmarks: [Data]?
     
     // print properties
     var printTarget: String?
@@ -50,6 +56,21 @@ struct Settings: Codable, Equatable {
 }
 
 class SettingsStore: ObservableObject {
+    // Resolve security‑scoped bookmark into a usable URL
+    func resolveBookmark(_ data: Data) -> URL? {
+        var isStale = false
+        do {
+            let url = try URL(resolvingBookmarkData: data,
+                               options: [.withSecurityScope],
+                               relativeTo: nil,
+                               bookmarkDataIsStale: &isStale)
+            _ = url.startAccessingSecurityScopedResource()
+            return url
+        } catch {
+            print("Failed to resolve bookmark: \(error)")
+            return nil
+        }
+    }
     @Published var settings: Settings = Settings()
     
     private(set) var currentFolder: URL?      // The folder we're working in

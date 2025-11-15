@@ -7,10 +7,21 @@
 
 import Foundation
 
+// MARK: - Filename Sanitizer
+private func sanitizeFilename(_ name: String) -> String {
+    return name
+        .replacingOccurrences(of: " ", with: "-")
+        .replacingOccurrences(of: "[^\\w\\-]", with: "-", options: .regularExpression)
+        .replacingOccurrences(of: "-+", with: "-", options: .regularExpression)
+        .trimmingCharacters(in: .init(charactersIn: "-"))
+        .lowercased()
+}
+
+// MARK: - Create EPUB
 func createEpub(destPath: URL, epubInfo: EpubInfo, pages: [Page]) {
     let fileManager = FileManager.default
     
-    // **Additional Code: Delete the destination folder if it exists**
+    // Delete existing
     if fileManager.fileExists(atPath: destPath.path) {
         do {
             try fileManager.removeItem(at: destPath)
@@ -21,7 +32,7 @@ func createEpub(destPath: URL, epubInfo: EpubInfo, pages: [Page]) {
         }
     }
     
-    // Create the destination folder
+    // Create destination
     do {
         try fileManager.createDirectory(at: destPath, withIntermediateDirectories: true, attributes: nil)
     } catch {
@@ -29,7 +40,7 @@ func createEpub(destPath: URL, epubInfo: EpubInfo, pages: [Page]) {
         return
     }
     
-    // Create the necessary subdirectories within the EPUB structure
+    // Create subdirectories
     let epubFolders = ["META-INF", "OPS", "OPS/content"]
     
     for folder in epubFolders {
@@ -41,20 +52,19 @@ func createEpub(destPath: URL, epubInfo: EpubInfo, pages: [Page]) {
             logger.log("Failed to create folder \(folder): \(error)")
             return
         }
-
-        // Create the core skeleton files in the appropriate folders
+        
         switch folder {
         case "META-INF":
             createFile(at: folderPath.appendingPathComponent("container.xml"), withContent: createContainerXmlContent())
             logger.log("Container.xml created")
             
-            if let _ = epubInfo.fonts {
+            if epubInfo.fonts?.isEmpty == false {
                 createFile(at: folderPath.appendingPathComponent("com.apple.ibooks.display-options.xml"), withContent: createAppleXmlMeta())
                 logger.log("com.apple.ibooks.display-options.xml created")
             }
         case "OPS":
             createFile(at: folderPath.appendingPathComponent("epb.opf"), withContent: createContentOpfContent(epubInfo: epubInfo, pages: pages))
-            logger.log("epm.opf created")
+            logger.log("epb.opf created")
             
             createFile(at: folderPath.appendingPathComponent("epb.ncx"), withContent: createTocNcxContent(epubInfo: epubInfo, pages: pages))
             logger.log("epb.ncx created")
@@ -66,11 +76,10 @@ func createEpub(destPath: URL, epubInfo: EpubInfo, pages: [Page]) {
     logger.log("Uncompressed skeleton EPUB structure created at: \(destPath.path)")
 }
 
+// MARK: - TOC XHTML (EPUB3 Nav)
 func createTocXhtml(epubInfo: EpubInfo, pages: [Page], destPath: URL) {
-    // Create the destination path for toc.xhtml
     let tocPath = destPath.appendingPathComponent("OPS").appendingPathComponent("toc.xhtml")
     
-    // Generate the content of toc.xhtml
     var tocContent = """
     <?xml version="1.0" encoding="UTF-8"?>
     <html xml:lang="en" xmlns:epub="http://www.idpf.org/2007/ops" xmlns="http://www.w3.org/1999/xhtml">
@@ -81,33 +90,56 @@ func createTocXhtml(epubInfo: EpubInfo, pages: [Page], destPath: URL) {
         <meta name="EPB-UUID" content="" />
     </head>
     <body>
+    
+    """
+    
+    // MARK: 1. TOC FIRST — Apple Books requires this
+    tocContent.append("""
+        <!-- TABLE OF CONTENTS -->
         <nav id="toc" role="doc-toc" epub:type="toc">
         <ol class="s2">
-    """
-
-    // Iterate over the pages and generate <li> tags for pages with non-empty titles
+    """)
+    
     for page in pages {
         let trimmedTitle = page.title.trimmingCharacters(in: .whitespacesAndNewlines)
         if !trimmedTitle.isEmpty {
             let pageLink = "content/\(page.file).xhtml"
-            let liTag = "        <li><a href=\"\(pageLink)\">\(page.title)</a></li>\n"
-            tocContent.append(liTag)
+            tocContent.append("        <li><a href=\"\(pageLink)\">\(page.title)</a></li>\n")
         }
     }
-
-    // Replace the content of the EPB-UUID meta tag
-    let epubUuid = epubInfo.id ?? ""
-    tocContent = tocContent.replacingOccurrences(of: "meta name=\"EPB-UUID\" content=\"\"", with: "meta name=\"EPB-UUID\" content=\"\(epubUuid)\"")
-
-    // Add the closing tags to tocContent
+    
     tocContent.append("""
         </ol>
         </nav>
+        
+    """)
+    
+    // MARK: 2. LANDMARKS SECOND — with valid <h2>
+    if let start = epubInfo.start {
+        let startPage = pages.first { "content/\($0.file).xhtml" == start }
+        let title = startPage?.title.trimmingCharacters(in: .whitespacesAndNewlines) ?? "Start Reading"
+        
+        tocContent.append("""
+            <!-- LANDMARKS -->
+            <nav epub:type="landmarks" id="landmarks">
+                <h2>Guide</h2>
+                <ol>
+                    <li><a epub:type="bodymatter" href="\(start)">\(title)</a></li>
+                </ol>
+            </nav>
+            
+        """)
+    }
+    
+    tocContent.append("""
     </body>
     </html>
     """)
-
-    // Write the toc.xhtml content to the destination file
+    
+    // Replace UUID
+    let epubUuid = epubInfo.id ?? ""
+    tocContent = tocContent.replacingOccurrences(of: "meta name=\"EPB-UUID\" content=\"\"", with: "meta name=\"EPB-UUID\" content=\"\(epubUuid)\"")
+    
     do {
         try FileManager.default.createDirectory(at: tocPath.deletingLastPathComponent(), withIntermediateDirectories: true, attributes: nil)
         try tocContent.write(to: tocPath, atomically: true, encoding: .utf8)
@@ -115,46 +147,42 @@ func createTocXhtml(epubInfo: EpubInfo, pages: [Page], destPath: URL) {
         logger.log("Error writing toc.xhtml file: \(error)")
     }
 }
-
+// MARK: - OPF Content
 func createContentOpfContent(epubInfo: EpubInfo, pages: [Page]) -> String {
     let bookId = epubInfo.id ?? ""
-
-    // Create manifest items for the pages
-    let manifestItems = pages.enumerated().map { (index, page) in
-        return """
-        <item id="item-\(index + 1)" href="content/\(page.file).xhtml" media-type="application/xhtml+xml" />
-        """
-    }.joined(separator: "\n")
-
-    // Create spine items for the pages
-    let spineItems = pages.enumerated().map { (index, _) in
-        return """
-        <itemref idref="item-\(index + 1)" />
-        """
-    }.joined(separator: "\n")
-
-    // Get the current date and time in the required format
     let dateFormatter = ISO8601DateFormatter()
     dateFormatter.formatOptions = [.withInternetDateTime]
     let modified = dateFormatter.string(from: Date())
-
-    // Create manifest items for fonts
+    
+    let manifestItems = pages.enumerated().map { (index, page) in
+        "<item id=\"item-\(index + 1)\" href=\"content/\(page.file).xhtml\" media-type=\"application/xhtml+xml\" />"
+    }.joined(separator: "\n")
+    
+    let spineItems = pages.enumerated().map { (index, _) in
+        "<itemref idref=\"item-\(index + 1)\" />"
+    }.joined(separator: "\n")
+    
     let fontItems = epubInfo.fonts?.enumerated().map { (index, font) in
         let fontFileName = URL(fileURLWithPath: font).lastPathComponent
-        return """
-        <item href="fonts/\(fontFileName)" id="font\(index + 1)" media-type="application/x-font-otf" />
-        """
+        return "<item href=\"fonts/\(fontFileName)\" id=\"font\(index + 1)\" media-type=\"application/x-font-otf\" />"
     }.joined(separator: "\n") ?? ""
-
-    // Create manifest items for images
+    
     let imageItems = epubInfo.images?.map { image in
-        let imageFileName = sanitizeImageName( URL(fileURLWithPath: image).lastPathComponent )
+        let imageFileName = sanitizeImageName(URL(fileURLWithPath: image).lastPathComponent)
         let imageId = imageFileName.split(separator: ".").first.map(String.init) ?? ""
-        return """
-        <item id="img-\(imageId)" href="images/\(imageFileName)" media-type="image/jpeg" />
-        """
+        return "<item id=\"img-\(imageId)\" href=\"images/\(imageFileName)\" media-type=\"image/jpeg\" />"
     }.joined(separator: "\n") ?? ""
-
+    
+    // FINAL FIX: Use type="start" in <guide>
+    var guideSection = ""
+    if let start = epubInfo.start {
+        guideSection = """
+          <guide>
+            <reference type="start" title="Start Reading" href="\(start)" />
+          </guide>
+        """
+    }
+    
     return """
     <?xml version="1.0" encoding="UTF-8"?>
     <package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="BookID">
@@ -177,25 +205,24 @@ func createContentOpfContent(epubInfo: EpubInfo, pages: [Page]) -> String {
       <spine toc="ncx">
         \(spineItems)
       </spine>
+      \(guideSection)
     </package>
     """
 }
 
+// MARK: - XHTML Files
 func createXhtmlFiles(epubInfo: EpubInfo, pages: [Page], destPath: URL) {
     let fileManager = FileManager.default
-
+    
     for page in pages {
-        // Create the file name and destination path
         let fileName = "\(page.file).xhtml"
         let filePath = destPath
             .appendingPathComponent("OPS")
             .appendingPathComponent("content")
             .appendingPathComponent(fileName)
         
-        // Use page.title if it is not empty, else use epubInfo.title
         let title = !page.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? page.title : epubInfo.title
         
-        // Generate XHTML content
         let xhtmlContent = """
         <!DOCTYPE html>
         <html xmlns="http://www.w3.org/1999/xhtml">
@@ -210,16 +237,9 @@ func createXhtmlFiles(epubInfo: EpubInfo, pages: [Page], destPath: URL) {
         </body>
         </html>
         """
-
-        // Ensure the directory exists
+        
         do {
             try fileManager.createDirectory(at: filePath.deletingLastPathComponent(), withIntermediateDirectories: true, attributes: nil)
-        } catch {
-            logger.log("Error creating directory: \(error)")
-        }
-
-        // Write the XHTML content to the file
-        do {
             try xhtmlContent.write(to: filePath, atomically: true, encoding: .utf8)
         } catch {
             logger.log("Error writing XHTML file: \(error)")
@@ -227,6 +247,7 @@ func createXhtmlFiles(epubInfo: EpubInfo, pages: [Page], destPath: URL) {
     }
 }
 
+// MARK: - Container & Apple Meta
 func createContainerXmlContent() -> String {
     return """
     <?xml version="1.0" encoding="UTF-8"?>
@@ -249,26 +270,30 @@ func createAppleXmlMeta() -> String {
     """
 }
 
+// MARK: - NCX with bodymatter
 func createTocNcxContent(epubInfo: EpubInfo, pages: [Page]) -> String {
-    var playOrderCounter = 1 // Start playOrder from 1
-
-    let navMap = pages.compactMap { page -> String? in
+    var playOrderCounter = 1
+    var navMap = ""
+    
+    for page in pages {
         let trimmedTitle = page.title.trimmingCharacters(in: .whitespacesAndNewlines)
         if !trimmedTitle.isEmpty {
+            let src = "content/\(page.file).xhtml"
+            let isStart = epubInfo.start == src
+            
             let navPoint = """
-            <navPoint id="navpoint-\(playOrderCounter)" playOrder="\(playOrderCounter)">
+            <navPoint id="navpoint-\(playOrderCounter)" playOrder="\(playOrderCounter)"\(isStart ? " class=\"bodymatter\"" : "")>
                 <navLabel>
                     <text>\(page.title)</text>
                 </navLabel>
-                <content src="content/\(page.file).xhtml"/>
+                <content src="\(src)"/>
             </navPoint>
             """
-            playOrderCounter += 1 // Increment playOrder for the next navPoint
-            return navPoint
+            navMap += navPoint
+            playOrderCounter += 1
         }
-        return nil
-    }.joined(separator: "\n")
-
+    }
+    
     return """
     <?xml version="1.0" encoding="UTF-8"?>
     <ncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1">
@@ -278,12 +303,8 @@ func createTocNcxContent(epubInfo: EpubInfo, pages: [Page]) -> String {
         <meta name="dtb:totalPageCount" content="0" />
         <meta name="dtb:maxPageNumber" content="0" />
       </head>
-      <docTitle>
-        <text>\(epubInfo.title)</text>
-      </docTitle>
-      <docAuthor>
-        <text>\(epubInfo.author)</text>
-      </docAuthor>
+      <docTitle><text>\(epubInfo.title)</text></docTitle>
+      <docAuthor><text>\(epubInfo.author)</text></docAuthor>
       <navMap>
         \(navMap)
       </navMap>

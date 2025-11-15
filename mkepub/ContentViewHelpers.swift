@@ -23,6 +23,33 @@ struct FilePreview {
 // --- FileHelper below ---
 
 class FileHelper: ObservableObject {
+
+    // MARK: - Restore From Settings (Bookmarks)
+    func restoreBookmarks() {
+        guard let store = settingsStore else { return }
+
+        // Restore cover
+        if let data = store.settings.coverBookmark,
+           let url = store.resolveBookmark(data) {
+            self.coverImagePath = url
+            self.coverImage = NSImage(contentsOf: url)
+            if !self.addedImages.contains(url) {
+                self.addedImages.append(url)
+            }
+        }
+
+        // Restore style
+        if let data = store.settings.styleBookmark,
+           let url = store.resolveBookmark(data) {
+            self.selectedStyleFile = url
+        }
+
+        // Restore fonts
+        if let bookmarks = store.settings.fontBookmarks {
+            let urls = bookmarks.compactMap { store.resolveBookmark($0) }
+            self.addedFonts = urls
+        }
+    }
     @Published var selectedFolder: URL? = nil
     @Published var filesInFolder: [URL] = []
     @Published var checkedFiles: [Bool] = []
@@ -76,6 +103,7 @@ class FileHelper: ObservableObject {
             settingsStore?.settings.words = 0
 
             settingsStore?.load(from: url)
+            self.restoreBookmarks()
 
         } catch {
             print("Error reading folder contents: \(error)")
@@ -152,6 +180,15 @@ class FileHelper: ObservableObject {
             if !addedImages.contains(url) {
                 addedImages.append(url)
             }
+
+            // Persist cover path + bookmark
+            if let store = settingsStore {
+                store.settings.cover = url.path
+                store.settings.coverBookmark = try? url.bookmarkData(options: [.withSecurityScope],
+                                                                      includingResourceValuesForKeys: nil,
+                                                                      relativeTo: nil)
+                try? store.save()
+            }
         }
     }
 
@@ -163,7 +200,17 @@ class FileHelper: ObservableObject {
             allowedExtensions: ["css", "html", "htm"],
             allowsMultipleSelection: false
         ) { urls in
-            self.selectedStyleFile = urls.first
+            guard let url = urls.first else { return }
+            self.selectedStyleFile = url
+
+            // Persist style path + bookmark
+            if let store = self.settingsStore {
+                store.settings.style = url.path
+                store.settings.styleBookmark = try? url.bookmarkData(options: [.withSecurityScope],
+                                                                     includingResourceValuesForKeys: nil,
+                                                                     relativeTo: nil)
+                try? store.save()
+            }
         }
     }
 
@@ -177,12 +224,70 @@ class FileHelper: ObservableObject {
         ) { urls in
             let newFonts = urls.filter { !self.addedFonts.contains($0) }
             self.addedFonts.append(contentsOf: newFonts)
+
+            // Persist fonts paths + bookmarks
+            if let store = self.settingsStore {
+                let allFonts = self.addedFonts
+                store.settings.fonts = allFonts.map { $0.path }
+                store.settings.fontBookmarks = allFonts.compactMap { url in
+                    try? url.bookmarkData(options: [.withSecurityScope],
+                                           includingResourceValuesForKeys: nil,
+                                           relativeTo: nil)
+                }
+                try? store.save()
+            }
         }
     }
 
     // MARK: - EpubInfo
-
     func generateEpubInfo() -> EpubInfo {
+        // MARK: - Sanitize Filename Helper
+        func sanitizeFilename(_ name: String) -> String {
+            return name
+                .replacingOccurrences(of: " ", with: "-")
+                .replacingOccurrences(of: "[^\\w\\-]", with: "-", options: .regularExpression)
+                .replacingOccurrences(of: "-+", with: "-", options: .regularExpression)
+                .trimmingCharacters(in: .init(charactersIn: "-"))
+                .lowercased()
+        }
+
+        // MARK: - Gather Images
+        let allImages = Set(
+            addedImages.map { $0.standardizedFileURL.path } +
+            (coverImagePath.map { [$0.standardizedFileURL.path] } ?? []) +
+            selectedFiles
+                .filter { ["jpg","jpeg","png"].contains($0.pathExtension.lowercased()) }
+                .map { $0.standardizedFileURL.path }
+        )
+
+        // MARK: - Determine Start Page (sanitized)
+        var startRelativePath: String? = nil
+
+        if let startName = settingsStore?.settings.start,
+           !startName.isEmpty,
+           let startFile = selectedFiles.first(where: { $0.lastPathComponent == startName }) {
+            
+            let baseName = startFile.deletingPathExtension().lastPathComponent
+            let sanitized = sanitizeFilename(baseName)
+            startRelativePath = "content/\(sanitized).xhtml"
+        }
+
+        return EpubInfo(
+            id: UUID().uuidString,
+            name: settingsStore?.settings.title ?? "Untitled",
+            author: settingsStore?.settings.author ?? "Unknown",
+            title: settingsStore?.settings.title ?? "Untitled",
+            start: startRelativePath,        // e.g. "content/030-for-all-our-might.xhtml"
+            startTitle: nil,
+            cover: coverImagePath?.standardizedFileURL.path,
+            style: selectedStyleFile?.path,
+            fonts: addedFonts.map { $0.path },
+            images: Array(allImages),
+            documents: selectedFiles.map { $0.standardizedFileURL.path }  // ORIGINAL ORDER
+        )
+    }
+    
+    func _generateEpubInfo() -> EpubInfo {
         func isImageFile(_ url: URL) -> Bool {
             let imageExtensions = ["jpg", "jpeg", "png"]
             return imageExtensions.contains(url.pathExtension.lowercased())
