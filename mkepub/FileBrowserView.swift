@@ -78,7 +78,7 @@ struct FileBrowserView: View {
                 }
             }
         }
-        .frame(width: geometry.size.width * dividerPosition)
+        .frame(maxHeight: .infinity, alignment: .top)
         .background(Color.gray.opacity(0.1))
         .gesture(
             DragGesture()

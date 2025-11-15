@@ -32,7 +32,9 @@ func makeBook(folderURL: URL, epubInfo: inout EpubInfo, destFolder: URL?) {
     }
     epubInfo.fonts = globalFileHelper.addedFonts.map { "fonts/\($0.lastPathComponent)" }
     if let coverURL = globalFileHelper.coverImagePath {
-        epubInfo.cover = "images/\(coverURL.lastPathComponent)"
+        let coverName = coverURL.lastPathComponent
+        let sanitizedCoverName = sanitizeImageName(coverName)
+        epubInfo.cover = "images/\(sanitizedCoverName)"
     }
 
     // -----------------------------------------------------------------------
@@ -102,11 +104,12 @@ private func copyExternalAssets(epubInfo: EpubInfo, to destURL: URL) {
 
     // COVER
     if let src = globalFileHelper.coverImagePath {
-        let dest = opsPath.appendingPathComponent("images").appendingPathComponent(src.lastPathComponent)
+        let sanitizedCoverName = sanitizeImageName(src.lastPathComponent)
+        let dest = opsPath.appendingPathComponent("images").appendingPathComponent(sanitizedCoverName)
         do {
             if fm.fileExists(atPath: dest.path) { try fm.removeItem(at: dest) }
             try fm.copyItem(at: src, to: dest)
-            logger.log("✓ Copied cover: \(src.lastPathComponent)")
+            logger.log("✓ Copied cover: \(sanitizedCoverName)")
         } catch {
             logger.log("⚠️ Failed to copy cover: \(error)")
         }
