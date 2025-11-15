@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import Ink
 
 // Preprocess function to handle specific commands or reconstruct the original if not recognized
 func preprocessePubCommand(_ command: String, _ params: String? = nil) -> String {
@@ -299,62 +298,9 @@ func preprocessMarkdown(text: String) -> String {
                 let innerContent = commandString.dropFirst(2).dropLast(2).trimmingCharacters(in: .whitespaces)
                 
                 // Split inner content into command and optional params
-                // let components = innerContent.split(separator: " ", maxSplits: 1).map { String($0) }
-                // let command = components.first ?? ""
-                // let params = components.count > 1 ? components.last : nil
-                
-                
-                // Split into command and params, supporting either:
-                //    command params
-                //    command: params
-                var command = ""
-                var params: String? = nil
-                var usesColon = false
-
-                let trimmed = innerContent
-
-                // Find first space and first colon
-                let firstSpace = trimmed.firstIndex(of: " ")
-                let firstColon = trimmed.firstIndex(of: ":")
-
-                // Colon is ONLY a command separator if it appears before any space
-                if let c = firstColon, (firstSpace == nil || c < firstSpace!) {
-                    usesColon = true
-                    
-                    let before = trimmed[..<c].trimmingCharacters(in: .whitespaces)
-                    let after = trimmed[trimmed.index(after: c)...].trimmingCharacters(in: .whitespaces)
-                    
-                    command = before
-                    params = after.isEmpty ? nil : after
-                }
-                else {
-                    // Fall back to space-separated
-                    let spaceSplit = trimmed.split(separator: " ", maxSplits: 1).map { String($0) }
-                    command = spaceSplit.first ?? ""
-                    params = spaceSplit.count > 1 ? spaceSplit.last : nil
-                }
-                
-                
-                // If colon is used: preprocess + then convert markdown → HTML using Ink
-                if usesColon, var p = params {
-                    // 1. Run your filters (curly quotes, punctuation fixes, anomalies, etc.)
-                    p = preprocessMarkdownWithoutCommands(text: p)
-
-                    // 2. Convert MARKDOWN to HTML using Ink
-                    let parser = MarkdownParser()
-                    p = parser.html(from: p).trimmingCharacters(in: .whitespacesAndNewlines)
-
-                    params = p
-                }
-
-                // If space is used: only run your filters (no markdown conversion)
-                else if var p = params {
-                    p = preprocessMarkdownWithoutCommands(text: p)
-                    params = p
-                }
-                
-            
-                
+                let components = innerContent.split(separator: " ", maxSplits: 1).map { String($0) }
+                let command = components.first ?? ""
+                let params = components.count > 1 ? components.last : nil
                 
                 // Process the command using the preprocess function
                 let processed = preprocessePubCommand(command, params)
@@ -413,21 +359,6 @@ func applyTitleCaseToMarkdownHeaders(in text: String) -> String {
     }
     
     return text
-}
-
-func preprocessMarkdownWithoutCommands(text: String) -> String {
-    var content = text
-
-    content = removeSpacesBetweenQuotesAndPunctuation(in: content)
-    content = replaceQuotes(in: content)
-    content = fixPunctuation(in: content)
-    content = applyTitleCaseToMarkdownHeaders(in: content)
-    content = removeExtraSpaces(from: content)
-    content = replaceBreaks(in: content)
-    content = fixEmAnomaly(in: content)
-    content = fixTshirtAnomaly(in: content)
-
-    return content
 }
 
 //TODO! IMPORTANT
